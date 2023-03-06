@@ -535,6 +535,11 @@
               <FileType>8</FileType>
               <FilePath>..\Drivers\WS281x.cpp</FilePath>
             </File>
+            <File>
+              <FileName>UART_GD.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>..\Drivers\UART_GD.cpp</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

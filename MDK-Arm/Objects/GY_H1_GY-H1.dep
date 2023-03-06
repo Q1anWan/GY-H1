@@ -751,7 +751,7 @@ I (..\GD32F30x_standard_peripheral\Include\gd32f30x_wwdgt.h)(0x6403D9A5)
 I (..\GD32F30x_standard_peripheral\Include\gd32f30x_misc.h)(0x6403D9A5)
 I (..\GD32F30x_standard_peripheral\Include\gd32f30x_enet.h)(0x6403D9A5)
 I (..\GD32F30x_standard_peripheral\Include\gd32f30x_exmc.h)(0x6403D9A5)
-F (..\GD32F30x_standard_peripheral\Source\gd32f30x_usart.c)(0x6403D9A5)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m4 -mfpu=fpv4-sp-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-gdwarf-4 -Ofast -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../GD32F30x_standard_peripheral/Include -I ../GD32F30x_standard_peripheral/GD32F30x/Include -I ../Drivers -I ../Algorithm -I ../RT-Thread/bsp -I ../RT-Thread/include -I ../RT-Thread/include/libc -I ../DSP/Include -I ../DSP/Include/dsp -I ../DSP/PrivateInclude-I./RTE/_GY-H1-IE:/Professional/STM32/MDK5/ARM/CMSIS/5.9.0/CMSIS/Core/Include-IE:/Professional/STM32/MDK5/GigaDevice/GD32F30x_DFP/2.2.1/Device/Include-D__UVISION_VERSION="538" -D_RTE_ -DGD32F30X_HD -D_RTE_ -DUSE_STDPERIPH_DRIVER -DGD32F30X_HD -D__FPU_USED -D__FPU_PRESENT-o ./objects/gd32f30x_usart.o -MD)
+F (..\GD32F30x_standard_peripheral\Source\gd32f30x_usart.c)(0x640547D7)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m4 -mfpu=fpv4-sp-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-gdwarf-4 -Ofast -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../GD32F30x_standard_peripheral/Include -I ../GD32F30x_standard_peripheral/GD32F30x/Include -I ../Drivers -I ../Algorithm -I ../RT-Thread/bsp -I ../RT-Thread/include -I ../RT-Thread/include/libc -I ../DSP/Include -I ../DSP/Include/dsp -I ../DSP/PrivateInclude-I./RTE/_GY-H1-IE:/Professional/STM32/MDK5/ARM/CMSIS/5.9.0/CMSIS/Core/Include-IE:/Professional/STM32/MDK5/GigaDevice/GD32F30x_DFP/2.2.1/Device/Include-D__UVISION_VERSION="538" -D_RTE_ -DGD32F30X_HD -D_RTE_ -DUSE_STDPERIPH_DRIVER -DGD32F30X_HD -D__FPU_USED -D__FPU_PRESENT-o ./objects/gd32f30x_usart.o -MD)
 I (..\GD32F30x_standard_peripheral\Include\gd32f30x_usart.h)(0x6403D9A5)
 I (..\GD32F30x_standard_peripheral\GD32F30x\Include\gd32f30x.h)(0x6403D9A5)
 I (E:\Professional\STM32\MDK5\ARM\CMSIS\5.9.0\CMSIS\Core\Include\core_cm4.h)(0x626F4ADE)
@@ -969,6 +969,47 @@ I (..\GD32F30x_standard_peripheral\Include\gd32f30x_misc.h)(0x6403D9A5)
 I (..\GD32F30x_standard_peripheral\Include\gd32f30x_enet.h)(0x6403D9A5)
 I (..\GD32F30x_standard_peripheral\Include\gd32f30x_exmc.h)(0x6403D9A5)
 I (..\Drivers\SPI_GD.h)(0x64040CDF)
+F (..\Drivers\UART_GD.cpp)(0x640548DE)(-xc++ -std=c++11 --target=arm-arm-none-eabi -mcpu=cortex-m4 -mfpu=fpv4-sp-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar -fno-exceptions-gdwarf-4 -Ofast -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../GD32F30x_standard_peripheral/Include -I ../GD32F30x_standard_peripheral/GD32F30x/Include -I ../Drivers -I ../Algorithm -I ../RT-Thread/bsp -I ../RT-Thread/include -I ../RT-Thread/include/libc -I ../DSP/Include -I ../DSP/Include/dsp -I ../DSP/PrivateInclude-I./RTE/_GY-H1-IE:/Professional/STM32/MDK5/ARM/CMSIS/5.9.0/CMSIS/Core/Include-IE:/Professional/STM32/MDK5/GigaDevice/GD32F30x_DFP/2.2.1/Device/Include-D__UVISION_VERSION="538" -D_RTE_ -DGD32F30X_HD -D_RTE_ -DUSE_STDPERIPH_DRIVER -DGD32F30X_HD -D__FPU_USED -D__FPU_PRESENT-o ./objects/uart_gd.o -MD)
+I (..\Drivers\UART_GD.h)(0x64054713)
+I (..\Algorithm\main.h)(0x6404104C)
+I (..\Drivers\gd32f30x_it.h)(0x6403D9A6)
+I (..\GD32F30x_standard_peripheral\GD32F30x\Include\gd32f30x.h)(0x6403D9A5)
+I (E:\Professional\STM32\MDK5\ARM\CMSIS\5.9.0\CMSIS\Core\Include\core_cm4.h)(0x626F4ADE)
+I (E:\Professional\STM32\MDK\ARM\ARMCLANG\include\libcxx\stdint.h)(0x63884908)
+I (E:\Professional\STM32\MDK\ARM\ARMCLANG\include\libcxx\__config)(0x63884902)
+I (E:\Professional\STM32\MDK\ARM\ARMCLANG\include\stdint.h)(0x63884908)
+I (E:\Professional\STM32\MDK5\ARM\CMSIS\5.9.0\CMSIS\Core\Include\cmsis_version.h)(0x626F4ADE)
+I (E:\Professional\STM32\MDK5\ARM\CMSIS\5.9.0\CMSIS\Core\Include\cmsis_compiler.h)(0x626F4ADE)
+I (E:\Professional\STM32\MDK5\ARM\CMSIS\5.9.0\CMSIS\Core\Include\cmsis_armclang.h)(0x626F4ADE)
+I (E:\Professional\STM32\MDK5\ARM\CMSIS\5.9.0\CMSIS\Core\Include\mpu_armv7.h)(0x626F4ADE)
+I (..\GD32F30x_standard_peripheral\GD32F30x\Include\system_gd32f30x.h)(0x6403D9A5)
+I (..\Drivers\gd32f30x_libopt.h)(0x6403D9A6)
+I (..\GD32F30x_standard_peripheral\Include\gd32f30x_rcu.h)(0x6403D9A5)
+I (..\GD32F30x_standard_peripheral\Include\gd32f30x_adc.h)(0x6403D9A5)
+I (..\GD32F30x_standard_peripheral\Include\gd32f30x_can.h)(0x6403D9A5)
+I (..\GD32F30x_standard_peripheral\Include\gd32f30x_crc.h)(0x6403D9A5)
+I (..\GD32F30x_standard_peripheral\Include\gd32f30x_ctc.h)(0x6403D9A5)
+I (..\GD32F30x_standard_peripheral\Include\gd32f30x_dac.h)(0x6403D9A5)
+I (..\GD32F30x_standard_peripheral\Include\gd32f30x_dbg.h)(0x6403D9A5)
+I (..\GD32F30x_standard_peripheral\Include\gd32f30x_dma.h)(0x6403D9A5)
+I (..\GD32F30x_standard_peripheral\Include\gd32f30x_exti.h)(0x6403D9A5)
+I (..\GD32F30x_standard_peripheral\Include\gd32f30x_fmc.h)(0x6403D9A5)
+I (..\GD32F30x_standard_peripheral\Include\gd32f30x_fwdgt.h)(0x6403D9A5)
+I (..\GD32F30x_standard_peripheral\Include\gd32f30x_gpio.h)(0x6403D9A5)
+I (..\GD32F30x_standard_peripheral\Include\gd32f30x_i2c.h)(0x6403D9A5)
+I (..\GD32F30x_standard_peripheral\Include\gd32f30x_pmu.h)(0x6403D9A5)
+I (..\GD32F30x_standard_peripheral\Include\gd32f30x_bkp.h)(0x6403D9A5)
+I (..\GD32F30x_standard_peripheral\Include\gd32f30x_rtc.h)(0x6403D9A5)
+I (..\GD32F30x_standard_peripheral\Include\gd32f30x_sdio.h)(0x6403D9A5)
+I (..\GD32F30x_standard_peripheral\Include\gd32f30x_spi.h)(0x6403D9A5)
+I (..\GD32F30x_standard_peripheral\Include\gd32f30x_timer.h)(0x6403D9A5)
+I (..\GD32F30x_standard_peripheral\Include\gd32f30x_usart.h)(0x6403D9A5)
+I (..\GD32F30x_standard_peripheral\Include\gd32f30x_wwdgt.h)(0x6403D9A5)
+I (..\GD32F30x_standard_peripheral\Include\gd32f30x_misc.h)(0x6403D9A5)
+I (..\GD32F30x_standard_peripheral\Include\gd32f30x_enet.h)(0x6403D9A5)
+I (..\GD32F30x_standard_peripheral\Include\gd32f30x_exmc.h)(0x6403D9A5)
+I (E:\Professional\STM32\MDK\ARM\ARMCLANG\include\libcxx\string.h)(0x63884908)
+I (E:\Professional\STM32\MDK\ARM\ARMCLANG\include\string.h)(0x63884908)
 F (..\Algorithm\main.cpp)(0x6404A210)(-xc++ -std=c++11 --target=arm-arm-none-eabi -mcpu=cortex-m4 -mfpu=fpv4-sp-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar -fno-exceptions-gdwarf-4 -Ofast -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../GD32F30x_standard_peripheral/Include -I ../GD32F30x_standard_peripheral/GD32F30x/Include -I ../Drivers -I ../Algorithm -I ../RT-Thread/bsp -I ../RT-Thread/include -I ../RT-Thread/include/libc -I ../DSP/Include -I ../DSP/Include/dsp -I ../DSP/PrivateInclude-I./RTE/_GY-H1-IE:/Professional/STM32/MDK5/ARM/CMSIS/5.9.0/CMSIS/Core/Include-IE:/Professional/STM32/MDK5/GigaDevice/GD32F30x_DFP/2.2.1/Device/Include-D__UVISION_VERSION="538" -D_RTE_ -DGD32F30X_HD -D_RTE_ -DUSE_STDPERIPH_DRIVER -DGD32F30X_HD -D__FPU_USED -D__FPU_PRESENT-o ./objects/main.o -MD)
 I (..\Drivers\gd32f30x_it.h)(0x6403D9A6)
 I (..\GD32F30x_standard_peripheral\GD32F30x\Include\gd32f30x.h)(0x6403D9A5)

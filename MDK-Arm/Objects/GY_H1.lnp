@@ -28,6 +28,7 @@
 ".\objects\gd32f30x_it.o"
 ".\objects\spi_gd.o"
 ".\objects\ws281x.o"
+".\objects\uart_gd.o"
 ".\objects\main.o"
 ".\objects\basicmathfunctions.o"
 ".\objects\commontables.o"
