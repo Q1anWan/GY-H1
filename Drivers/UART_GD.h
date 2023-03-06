@@ -34,12 +34,12 @@
 /*******开启DMA收发*****s***/
 #define UART_USE_RX_DMA 1
 #define UART_USE_TX_DMA 1
-#define UART_TX_DMA_M2M 1
+#define UART_TX_DMA_M2M 0
 /********1开**0关**********/
 
 /********其他参数**********/
 //接收缓冲区长度 也是最大接受长度
-#define RX_BUF_LEN 1024
+#define RX_BUF_LEN 128
 //每个Byte的超时时间
 #define UART_TIME_OVER_TIME 500
 /**************************/
@@ -140,8 +140,7 @@ class cUART
 	inline uint8_t Recieve_IRQ(void)
 	{ 
 		//溢出错误清楚
-		if(usart_interrupt_flag_get(this->UART,USART_INT_FLAG_RBNE_ORERR))
-		{usart_interrupt_flag_clear(this->UART,USART_INT_FLAG_RBNE_ORERR);}
+		usart_interrupt_flag_clear(this->UART,USART_INT_FLAG_RBNE_ORERR);
 		if(usart_interrupt_flag_get(this->UART,USART_INT_FLAG_IDLE))
 		{
 			/*停止DMA传输*/

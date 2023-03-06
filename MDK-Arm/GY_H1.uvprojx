@@ -550,6 +550,11 @@
               <FileType>8</FileType>
               <FilePath>..\Algorithm\main.cpp</FilePath>
             </File>
+            <File>
+              <FileName>MsgThread.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>..\Algorithm\MsgThread.cpp</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
