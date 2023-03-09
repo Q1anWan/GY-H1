@@ -1,9 +1,11 @@
 #include "MsgThread.h"
 
+extern uint16_t TxNum;
+extern uint16_t InStackNum;
 /*串口控制类*/
 cUART *myUART0;
 /*程序串口发送控制*/
-cMSG MSG_UART0;
+cMSG MSG_TX;
 /*进程控制指针*/
 rt_thread_t UART_thread = RT_NULL;
 /*发送空闲控制信号量*/
@@ -24,13 +26,8 @@ void UARTThread(void* parameter)
 		Pack[0] 0~7 与 Pack[1] 0~8构成数据长度
 		Pack[1]在有包头时表示包头，无包头时信息无意义
 	*/
-	uint8_t CFGBuf[UART_MSG_CFG_LEN]={0};
+	static uint8_t RecBuf[UART_MSG_CFG_LEN+UART_MSG_MAX_LEN];
 	uint8_t IsHead = 0;//是否需要添加包头
-	
-	/*	TxBuf
-		发送数据信息缓冲区 长度为数据部分长度+1
-	*/
-	uint8_t TxBuf[UART_MSG_MAX_LEN+1]={0};
 	uint16_t TxLen = 0;//数据部分长度
 
 	/*初始化硬件资源*/
@@ -39,34 +36,59 @@ void UARTThread(void* parameter)
 	for(;;)
 	{
 		/*UART硬件就绪*/
-		rt_sem_take(UART0_TxSem,RT_WAITING_FOREVER);
-		/*获取发送配置信息*/
-		rt_mq_recv(&UART0_TxMSG,CFGBuf,UART_MSG_CFG_LEN,RT_WAITING_FOREVER);
+		rt_sem_take(UART0_TxSem,3);
+		/*获取发送数据包*/
+		rt_mq_recv(&UART0_TxMSG,RecBuf,UART_MSG_CFG_LEN+UART_MSG_MAX_LEN,RT_WAITING_FOREVER);
 		/*计算发送部分长度*/
-		TxLen = CFGBuf[0]<<8 | CFGBuf[1];
+		TxLen = RecBuf[0]<<8 | RecBuf[1];
 		/*判断是否需要添加包头*/
-		IsHead = CFGBuf[0]&0x80;
-		if(IsHead){TxBuf[0]=CFGBuf[2];}
-		/*获取数据部分,根据有无包头做数据偏移*/
-		if(rt_mq_recv(&UART0_TxMSG,TxBuf+IsHead,TxLen,RT_WAITING_FOREVER)==RT_EOK)
+		IsHead = RecBuf[0]&0x80;
+		if(IsHead)
 		{
 			/*调用硬件发送*/
-			myUART0->Transmit_DMA(TxBuf,TxLen+IsHead);
+			myUART0->Transmit_DMA(RecBuf+2,TxLen);
 		}
-		else/*如果超时，说明消息队列已经失去同步，尝试恢复队列*/
+		else
 		{
-			rt_mq_delete(&UART0_TxMSG);//need to write
+			myUART0->Transmit_DMA(RecBuf+3,TxLen);
 		}
+		InStackNum --;
+		TxNum++;
 	} 
 }
 
 void DMA0_Channel3_IRQHandler(void)
 {
-	if(myUART0->Transmit_IRQ())
+	myUART0->Transmit_IRQ();
+	rt_sem_release(UART0_TxSem);
+}
+void rt_hw_console_output(const char *str)
+{
+	if(UART_thread==RT_NULL){
+    /* 进入临界段 */
+	rt_enter_critical();
+	while(*str != '\0')
 	{
-		rt_sem_release(UART0_TxSem);
+		if( *str=='\n' )
+		{	
+			while (!usart_flag_get(USART0, USART_FLAG_TBE)){}
+			usart_data_transmit(USART0,'\r');
+			while (!usart_flag_get(USART0, USART_FLAG_TBE)){}
+		}
+		
+		while (!usart_flag_get(USART0, USART_FLAG_TBE)){}
+		usart_data_transmit(USART0,*str++);
+		while (!usart_flag_get(USART0, USART_FLAG_TBE)){}
 	}
-
+	/* 退出临界段 */
+	rt_exit_critical();
+	}
+	else
+	{
+		uint16_t i=0;
+		while(*(str+i) != '\0'){i++;}
+		MSG_TX.MSGTx((uint8_t *)str,i);
+	}
 }
 /*
 	常规消息发送进程,无包头
@@ -75,18 +97,22 @@ void DMA0_Channel3_IRQHandler(void)
 */
 uint8_t cMSG::MSGTx(uint8_t *pdata, uint16_t Length)
 {
-	if(pdata==NULL){return 1;}
+	if(pdata==0){return 1;}
 	if(Length>UART_MSG_MAX_LEN){return 1;}
 	
-	uint8_t CFGBuf[3]={0};
-	CFGBuf[0] = Length>>8;
-	CFGBuf[1] = Length&0xFF;
 	
-	rt_enter_critical();
-	rt_mq_send(&UART0_TxMSG,CFGBuf,UART_MSG_CFG_LEN);
-	rt_mq_send(&UART0_TxMSG,pdata,Length);
-	rt_exit_critical();
 	
+	uint8_t *buf = (uint8_t *)rt_malloc(UART_MSG_CFG_LEN+UART_MSG_MAX_LEN);
+	
+	buf[0] = Length>>8;
+	buf[1] = Length&0xFF;
+	
+	memcpy(buf+3,pdata,Length);
+	if(rt_mq_send(&UART0_TxMSG,buf,UART_MSG_CFG_LEN+UART_MSG_MAX_LEN)==-RT_EFULL)
+	{rt_free(buf);return 1;}
+	
+	rt_free(buf);
+	InStackNum++;
 	return 0;
 }
 
@@ -97,8 +123,10 @@ uint8_t cMSG::MSGTx(uint8_t *pdata, uint16_t Length)
 */
 uint8_t cMSG::MSGTx(uint8_t Head, uint8_t *pdata, uint16_t Length)
 {
-	if(pdata==NULL){return 1;}
+	if(pdata==0){return 1;}
 	if(Length>UART_MSG_MAX_LEN){return 1;}
+	
+	uint8_t *buf = (uint8_t *)rt_malloc(UART_MSG_CFG_LEN+UART_MSG_MAX_LEN);
 	
 	uint8_t CFGBuf[3]={0};
 	CFGBuf[0] = Length>>8;
@@ -106,11 +134,12 @@ uint8_t cMSG::MSGTx(uint8_t Head, uint8_t *pdata, uint16_t Length)
 	CFGBuf[1] = Length&0xFF;
 	CFGBuf[2] = Head;
 	
-	rt_enter_critical();
-	rt_mq_send(&UART0_TxMSG,CFGBuf,UART_MSG_CFG_LEN);
-	rt_mq_send(&UART0_TxMSG,pdata,Length);
-	rt_exit_critical();
+	memcpy(buf+3,pdata,Length);
+	if(rt_mq_send(&UART0_TxMSG,buf,UART_MSG_CFG_LEN+UART_MSG_MAX_LEN)==-RT_EFULL)
+	{rt_free(buf);return 1;}
 	
+	rt_free(buf);
+	InStackNum++;
 	return 0;
 }
 
@@ -121,18 +150,20 @@ uint8_t cMSG::MSGTx(uint8_t Head, uint8_t *pdata, uint16_t Length)
 */
 uint8_t cMSG::MSGUrgentTx(uint8_t *pdata, uint16_t Length)
 {
-	if(pdata==NULL){return 1;}
+	if(pdata==0){return 1;}
 	if(Length>UART_MSG_MAX_LEN){return 1;}
 	
-	uint8_t CFGBuf[3]={0};
-	CFGBuf[0] = Length>>8;
-	CFGBuf[1] = Length&0xFF;
+	uint8_t *buf = (uint8_t *)rt_malloc(UART_MSG_CFG_LEN+UART_MSG_MAX_LEN);
 	
-	rt_enter_critical();
-	rt_mq_urgent(&UART0_TxMSG,pdata,Length);
-	rt_mq_urgent(&UART0_TxMSG,CFGBuf,UART_MSG_CFG_LEN);
-	rt_exit_critical();
+	buf[0] = Length>>8;
+	buf[1] = Length&0xFF;
 	
+	memcpy(buf+3,pdata,Length);
+	if(rt_mq_urgent(&UART0_TxMSG,buf,UART_MSG_CFG_LEN+UART_MSG_MAX_LEN)==-RT_EFULL)
+	{rt_free(buf);return 1;}
+	
+	rt_free(buf);
+	InStackNum++;
 	return 0;
 }
 
@@ -143,8 +174,10 @@ uint8_t cMSG::MSGUrgentTx(uint8_t *pdata, uint16_t Length)
 */
 uint8_t cMSG::MSGUrgentTx(uint8_t Head, uint8_t *pdata, uint16_t Length)
 {
-	if(pdata==NULL){return 1;}
+	if(pdata==0){return 1;}
 	if(Length>UART_MSG_MAX_LEN){return 1;}
+	
+	uint8_t *buf = (uint8_t *)rt_malloc(UART_MSG_CFG_LEN+UART_MSG_MAX_LEN);
 	
 	uint8_t CFGBuf[3]={0};
 	CFGBuf[0] = Length>>8;
@@ -152,10 +185,11 @@ uint8_t cMSG::MSGUrgentTx(uint8_t Head, uint8_t *pdata, uint16_t Length)
 	CFGBuf[1] = Length&0xFF;
 	CFGBuf[2] = Head;
 	
-	rt_enter_critical();
-	rt_mq_send(&UART0_TxMSG,pdata,Length);
-	rt_mq_send(&UART0_TxMSG,CFGBuf,UART_MSG_CFG_LEN);
-	rt_exit_critical();
+	memcpy(buf+3,pdata,Length);
+	if(rt_mq_urgent(&UART0_TxMSG,buf,UART_MSG_CFG_LEN+UART_MSG_MAX_LEN)==-RT_EFULL)
+	{rt_free(buf);return 1;}
 	
+	rt_free(buf);
+	InStackNum++;
 	return 0;
 }
