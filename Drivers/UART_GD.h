@@ -129,7 +129,7 @@ class cUART
 		if(dma_interrupt_flag_get(this->DMAt,this->DMA_CHt,DMA_INT_FLAG_FTF))
 		{
 			dma_channel_disable(this->DMAt,this->DMA_CHt);
-			dma_interrupt_flag_clear(this->DMAt,this->DMA_CHt,DMA_INT_FLAG_FTF);
+			dma_interrupt_flag_clear(this->DMAt,this->DMA_CHt,DMA_INT_FLAG_G);
 			return 1;
 		}
 		return 0;

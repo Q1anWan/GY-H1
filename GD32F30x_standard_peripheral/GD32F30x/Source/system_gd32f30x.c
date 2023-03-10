@@ -857,7 +857,7 @@ static void system_clock_120m_hxtal(void)
 
     /* CK_PLL = (CK_HXTAL/2) * 30 = 120 MHz */
     RCU_CFG0 &= ~(RCU_CFG0_PLLMF | RCU_CFG0_PLLMF_4 | RCU_CFG0_PLLMF_5);
-    RCU_CFG0 |= RCU_PLL_MUL36;//288MHz
+    RCU_CFG0 |= RCU_PLL_MUL36 ;//288MHz
 
 #elif defined(GD32F30X_CL)
     /* CK_PLL = (CK_PREDIV0) * 30 = 120 MHz */ 

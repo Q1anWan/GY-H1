@@ -315,7 +315,7 @@
           </ArmAdsMisc>
           <Cads>
             <interw>1</interw>
-            <Optim>5</Optim>
+            <Optim>2</Optim>
             <oTime>0</oTime>
             <SplitLS>0</SplitLS>
             <OneElfS>1</OneElfS>
@@ -339,9 +339,9 @@
             <v6Rtti>0</v6Rtti>
             <VariousControls>
               <MiscControls></MiscControls>
-              <Define>USE_STDPERIPH_DRIVER,GD32F30X_HD,__FPU_USED,__FPU_PRESENT</Define>
+              <Define>USE_STDPERIPH_DRIVER,GD32F30X_HD,__FPU_USED,__FPU_PRESENT,qwDbug</Define>
               <Undefine></Undefine>
-              <IncludePath>..\GD32F30x_standard_peripheral\Include;..\GD32F30x_standard_peripheral\GD32F30x\Include;..\Drivers;..\Algorithm;..\RT-Thread\bsp;..\RT-Thread\include;..\RT-Thread\include\libc;..\DSP\Include;..\DSP\Include\dsp;..\DSP\PrivateInclude</IncludePath>
+              <IncludePath>..\GD32F30x_standard_peripheral\Include;..\GD32F30x_standard_peripheral\GD32F30x\Include;..\Drivers;..\Algorithm;..\RT-Thread\bsp;..\RT-Thread\include;..\RT-Thread\include\libc;..\DSP\Include;..\DSP\Include\dsp;..\DSP\PrivateInclude;..\RT-Thread\components\finsh;..\RT-Thread\components\device</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -714,6 +714,11 @@
               <FileName>rtconfig.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\RT-Thread\bsp\rtconfig.h</FilePath>
+            </File>
+            <File>
+              <FileName>cmd.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\RT-Thread\components\finsh\cmd.c</FilePath>
             </File>
           </Files>
         </Group>

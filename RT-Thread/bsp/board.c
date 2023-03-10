@@ -105,6 +105,19 @@ void SysTick_Handler(void)
     rt_interrupt_leave();
 }
 
+void rt_hw_us_delay(rt_uint32_t us)
+{
+    rt_uint32_t start, now, delta, reload, us_tick;
+    start = SysTick->VAL;
+    reload = SysTick->LOAD;
+    us_tick = SystemCoreClock / 1000000UL;
+    do {
+        now = SysTick->VAL;
+        delta = start > now ? start - now : reload + start - now;
+    } while(delta < us_tick * us);
+}
+
+
 static void CLOCK_Init(void)
 {
 	rcu_periph_clock_enable(RCU_GPIOA);

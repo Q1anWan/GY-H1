@@ -1,4 +1,4 @@
-./objects/mempool.o: ..\RT-Thread\src\mempool.c \
+./objects/finsh_port.o: ..\RT-Thread\components\finsh\finsh_port.c \
   ..\RT-Thread\include\rthw.h ..\RT-Thread\include\rtthread.h \
   ..\RT-Thread\bsp\rtconfig.h ..\RT-Thread\include\rtdebug.h \
   ..\RT-Thread\include\rtdef.h \

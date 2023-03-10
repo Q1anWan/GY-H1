@@ -5,10 +5,17 @@
 #include "MsgThread.h"
 
 uint16_t TxNum = 0;
+uint16_t TxDir = 0;
+uint16_t TxBuf= 0;
+uint16_t TxTask = 0;
 uint16_t InStackNum = 0;
+uint8_t Test0 = 0;
+uint8_t Test1 = 0;
+uint8_t Test2 = 0;
+uint8_t Test3 = 0;
+
 
 cWS281x LED;
-
 
 
 static rt_thread_t LED_thread = RT_NULL;
@@ -25,8 +32,9 @@ extern rt_sem_t UART0_TxSem;
 extern struct rt_messagequeue UART0_TxMSG;
 static rt_uint8_t UART0_TxMSG_POOL[(UART_MSG_MAX_LEN+UART_MSG_CFG_LEN)*16];
 
-static uint8_t dataXXX[128]={0x01,0x02,0x03,0x01};
-
+uint8_t dataXXX[128]={0x01,0x02,0x03,0x01};
+uint8_t dataYYY[128]={0xFF,0xFF,0xFF,0xFF};
+uint8_t TxStatue[4];
 
 int main(void)
 {	
@@ -34,25 +42,25 @@ int main(void)
 	rt_thread_create( 					"LED",             	/* 线程名字 */
 										LEDThread,   		/* 线程入口函数 */
 										RT_NULL,            /* 线程入口函数参数 */
-										256,                /* 线程栈大小 */
+										512,                /* 线程栈大小 */
 										3,                  /* 线程的优先级 */
-										20);                /* 线程时间片 */
+										20);                /* 线程时间片 */	
 	
 	Test1_thread =                          				/* 线程控制块指针 */
 	rt_thread_create( 					"Test1",            /* 线程名字 */
 										Test1Thread,   		/* 线程入口函数 */
 										RT_NULL,            /* 线程入口函数参数 */
-										256,                /* 线程栈大小 */
-										5,                  /* 线程的优先级 */
+										512,                /* 线程栈大小 */
+										2,                  /* 线程的优先级 */
 										20);                /* 线程时间片 */
-
+	
 	UART_thread =                          					/* 线程控制块指针 */
 	rt_thread_create( 					"UART",             /* 线程名字 */
 										UARTThread,   		/* 线程入口函数 */
 										RT_NULL,            /* 线程入口函数参数 */
 										512,                /* 线程栈大小 */
-										1,                  /* 线程的优先级 */
-										20);                /* 线程时间片 */
+										4,                  /* 线程的优先级 */
+										1);                /* 线程时间片 */
 	
 	UART0_TxSem	=
 	rt_sem_create(						"UART0_TxSem",		/*信号量的名称*/
@@ -65,15 +73,18 @@ int main(void)
 										&UART0_TxMSG_POOL[0],				/*内存池*/
 										UART_MSG_MAX_LEN+UART_MSG_CFG_LEN,	/*每个消息的长度*/
 										sizeof(UART0_TxMSG_POOL),			/*内存池大小*/
-										RT_IPC_FLAG_FIFO);					/*先入先出*/
-										
-
-
+										RT_IPC_FLAG_FIFO);					/*先入先出*/	
 										
 	/* 启动线程，开启调度 */
-	rt_thread_startup(LED_thread);
 	rt_thread_startup(UART_thread);
+	rt_thread_startup(LED_thread);
 	rt_thread_startup(Test1_thread);
+	
+	rt_kprintf("\n\nUART_thread  = %d\n",UART_thread);
+	rt_thread_delay(10);
+	rt_kprintf("LED_thread   = %d\n",LED_thread);
+	rt_thread_delay(10);
+	rt_kprintf("Test1_thread = %d\n",Test1_thread);	
 	return 0;
 }
 
@@ -118,15 +129,31 @@ static void LEDThread(void* parameter)
 
 static void Test1Thread(void* parameter)
 {
-	rt_thread_delay(100);
+	rt_thread_delay(1000);
 
 	for(;;)
 	{	
-//		rt_kprintf("12345\n");
+
+		TxStatue[0]=MSG_TX->MSGTx(dataYYY,48);
+		TxStatue[1]=MSG_TX->MSGTx(dataXXX,48);
+		TxStatue[2]=MSG_TX->MSGTx(dataYYY,48);
+		TxStatue[3]=MSG_TX->MSGTx(dataXXX,48);
+
+//		rt_thread_delay(10);
+//		rt_kprintf("\n\n%d",MSG_TX->InBufNum);
 //		MSG_TX.MSGTx(dataXXX,40);
 //		MSG_TX.MSGTx(dataXXX,128);
 //		MSG_TX.MSGTx(dataXXX,128);
-		rt_thread_delay(10);
+//		rt_kprintf("\n");
+//		list_thread();
+//		rt_kprintf("\n");
+//		list_sem();
+//		rt_kprintf("\n");
+//		list_msgqueue();
+		rt_thread_delay(100);
+		
+//		rt_kprintf("\n%d %d %d %d\n",TxStatue[0],TxStatue[1],TxStatue[2],TxStatue[3]);
+		rt_thread_delay(900);
 	}
 }
 
