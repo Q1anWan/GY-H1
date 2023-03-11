@@ -35,8 +35,6 @@ extern rt_thread_t UART_thread;
 extern rt_mutex_t UART0_TxMut;
 extern rt_sem_t UART0_TxSem;	
 extern rt_sem_t UART0_RxSem;
-extern rt_messagequeue UART0_TxMsq;
-static rt_uint8_t UART0_TxMsq_POOL[(UART_MSG_MAX_LEN+UART_MSG_CFG_LEN)*UART_MSG_BUF_CAP];
 
 uint8_t dataXXX[128]={0x01,0x01,0x01,0x01};
 uint8_t dataYYY[128]={0x02,0x02,0x02,0x02};
@@ -105,31 +103,22 @@ int main(void)
 	rt_sem_create(						"UART0_RxSem",		/* 信号量的名称 */
 										0,					/* 初始化的值 */
 										RT_IPC_FLAG_FIFO);	/* 信号量的标志位 */
-	rt_mq_init(
-										&UART0_TxMsq,						/*消息控制指针*/
-										"UART0_TxMSG",						/*消息名字*/
-										&UART0_TxMsq_POOL[0],				/*内存池*/
-										UART_MSG_MAX_LEN+UART_MSG_CFG_LEN,	/*每个消息的长度*/
-										sizeof(UART0_TxMsq_POOL),			/*内存池大小*/
-										RT_IPC_FLAG_FIFO);					/*先入先出*/	
 										
 	/* 启动线程，开启调度 */
 	rt_thread_startup(UART_thread);
-	rt_thread_startup(LED_thread);
 										
+	rt_kprintf("\n\nUART_thread  = %d\n",UART_thread);rt_thread_delay(1);	
+	rt_kprintf("LED_thread   = %d\n",LED_thread);rt_thread_delay(1);
+	rt_kprintf("Test1_thread = %d\n",Test1_thread);rt_thread_delay(1);
+	rt_kprintf("Test2_thread = %d\n",Test2_thread);rt_thread_delay(1);	
+	rt_kprintf("Test3_thread = %d\n",Test3_thread);rt_thread_delay(1);
+	rt_kprintf("Test4_thread = %d\n",Test4_thread);rt_thread_delay(1);				
+	
+	rt_thread_startup(LED_thread);					
 	rt_thread_startup(Test1_thread);
 	rt_thread_startup(Test2_thread);
 	rt_thread_startup(Test3_thread);
 	rt_thread_startup(Test4_thread);
-										
-	rt_kprintf("\n\nUART_thread  = %d\n",UART_thread);
-	rt_thread_delay(10);
-	rt_kprintf("LED_thread   = %d\n",LED_thread);
-	rt_thread_delay(10);
-	rt_kprintf("Test1_thread = %d\n",Test1_thread);	
-	rt_kprintf("Test2_thread = %d\n",Test2_thread);	
-	rt_kprintf("Test3_thread = %d\n",Test3_thread);	
-	rt_kprintf("Test4_thread = %d\n",Test4_thread);										
 	return 0;
 }
 
@@ -178,8 +167,10 @@ static void Test1Thread(void* parameter)
 
 	for(;;)
 	{	
-		MSG_TX->MSGTx(dataXXX,12);
-		rt_thread_delay(1);
+//		MSG_TX->MSGTx(dataXXX,12);
+//		rt_thread_delay(1);
+		list_thread();
+		rt_thread_delay(1000);
 	}
 }
 static void Test2Thread(void* parameter)
@@ -188,8 +179,8 @@ static void Test2Thread(void* parameter)
 
 	for(;;)
 	{	
-		MSG_TX->MSGTx(dataYYY,12);
-		rt_thread_delay(1);
+		MSG_TX->MSGTx(0xFF,dataYYY,12);
+		rt_thread_delay(10);
 	}
 }
 static void Test3Thread(void* parameter)
@@ -198,8 +189,8 @@ static void Test3Thread(void* parameter)
 
 	for(;;)
 	{	
-		MSG_TX->MSGTx(dataZZZ,12);
-		rt_thread_delay(1);
+		MSG_TX->MSGTx(0xAA,dataZZZ,12);
+		rt_thread_delay(10);
 	}
 }
 static void Test4Thread(void* parameter)
@@ -209,7 +200,7 @@ static void Test4Thread(void* parameter)
 	for(;;)
 	{	
 		MSG_TX->MSGTx(dataUUU,12);
-		rt_thread_delay(1);
+		rt_thread_delay(10);
 	}
 }
 
