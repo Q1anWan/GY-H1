@@ -244,6 +244,6 @@ static void NVIC_Init(void)
 	nvic_priority_group_set(NVIC_PRIGROUP_PRE2_SUB2);
 	
     nvic_irq_enable(DMA1_Channel1_IRQn,2,1);//SPI2 RX
-	nvic_irq_enable(DMA0_Channel3_IRQn,0,0);//USART0 TX
-	nvic_irq_enable(DMA0_Channel4_IRQn,0,1);//USART0 RX
+	nvic_irq_enable(DMA0_Channel3_IRQn,1,1);//USART0 TX
+	nvic_irq_enable(DMA0_Channel4_IRQn,1,1);//USART0 RX
 }

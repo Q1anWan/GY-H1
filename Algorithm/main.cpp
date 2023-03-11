@@ -17,23 +17,32 @@ uint8_t Test3 = 0;
 
 cWS281x LED;
 
-
-static rt_thread_t LED_thread = RT_NULL;
 static void LEDThread(void* parameter);
+static rt_thread_t LED_thread = RT_NULL;
 
-static rt_thread_t Test1_thread = RT_NULL;
+
 static void Test1Thread(void* parameter);
+static rt_thread_t Test1_thread = RT_NULL;
+static void Test2Thread(void* parameter);
+static rt_thread_t Test2_thread = RT_NULL;
+static void Test3Thread(void* parameter);
+static rt_thread_t Test3_thread = RT_NULL;
+static void Test4Thread(void* parameter);
+static rt_thread_t Test4_thread = RT_NULL;
 
-extern rt_thread_t UART_thread;
 extern void UARTThread(void* parameter);
-	
+extern rt_thread_t UART_thread;
+extern rt_mutex_t UART0_TxMut;
 extern rt_sem_t UART0_TxSem;	
+extern rt_sem_t UART0_RxSem;
+extern rt_messagequeue UART0_TxMsq;
+static rt_uint8_t UART0_TxMsq_POOL[(UART_MSG_MAX_LEN+UART_MSG_CFG_LEN)*UART_MSG_BUF_CAP];
 
-extern struct rt_messagequeue UART0_TxMSG;
-static rt_uint8_t UART0_TxMSG_POOL[(UART_MSG_MAX_LEN+UART_MSG_CFG_LEN)*16];
+uint8_t dataXXX[128]={0x01,0x01,0x01,0x01};
+uint8_t dataYYY[128]={0x02,0x02,0x02,0x02};
+uint8_t dataZZZ[128]={0x03,0x03,0x03,0x03};
+uint8_t dataUUU[128]={0x04,0x04,0x04,0x04};
 
-uint8_t dataXXX[128]={0x01,0x02,0x03,0x01};
-uint8_t dataYYY[128]={0xFF,0xFF,0xFF,0xFF};
 uint8_t TxStatue[4];
 
 int main(void)
@@ -52,7 +61,28 @@ int main(void)
 										RT_NULL,            /* 线程入口函数参数 */
 										512,                /* 线程栈大小 */
 										2,                  /* 线程的优先级 */
-										20);                /* 线程时间片 */
+										5);                /* 线程时间片 */
+	Test2_thread =                          				/* 线程控制块指针 */
+	rt_thread_create( 					"Test2",            /* 线程名字 */
+										Test2Thread,   		/* 线程入口函数 */
+										RT_NULL,            /* 线程入口函数参数 */
+										128,                /* 线程栈大小 */
+										2,                  /* 线程的优先级 */
+										5);                /* 线程时间片 */
+	Test3_thread =                          				/* 线程控制块指针 */
+	rt_thread_create( 					"Test3",            /* 线程名字 */
+										Test3Thread,   		/* 线程入口函数 */
+										RT_NULL,            /* 线程入口函数参数 */
+										128,                /* 线程栈大小 */
+										3,                  /* 线程的优先级 */
+										5);                /* 线程时间片 */
+	Test4_thread =                          				/* 线程控制块指针 */
+	rt_thread_create( 					"Test4",            /* 线程名字 */
+										Test4Thread,   		/* 线程入口函数 */
+										RT_NULL,            /* 线程入口函数参数 */
+										128,                /* 线程栈大小 */
+										4,                  /* 线程的优先级 */
+										5);                /* 线程时间片 */
 	
 	UART_thread =                          					/* 线程控制块指针 */
 	rt_thread_create( 					"UART",             /* 线程名字 */
@@ -60,31 +90,46 @@ int main(void)
 										RT_NULL,            /* 线程入口函数参数 */
 										512,                /* 线程栈大小 */
 										4,                  /* 线程的优先级 */
-										1);                /* 线程时间片 */
+										1);                 /* 线程时间片 */
 	
+	UART0_TxMut =
+	rt_mutex_create(					"UART0_TxMut",		/* 互斥锁的名称 */
+										RT_IPC_FLAG_FIFO);	/* 互斥锁的标志位 */
+
 	UART0_TxSem	=
-	rt_sem_create(						"UART0_TxSem",		/*信号量的名称*/
-										1,					/*初始化的值*/
-										RT_IPC_FLAG_FIFO);	/*信号量的标志位*/
+	rt_sem_create(						"UART0_TxSem",		/* 信号量的名称 */
+										0,					/* 初始化的值 */
+										RT_IPC_FLAG_FIFO);	/* 信号量的标志位 */
 	
+	UART0_RxSem	=
+	rt_sem_create(						"UART0_RxSem",		/* 信号量的名称 */
+										0,					/* 初始化的值 */
+										RT_IPC_FLAG_FIFO);	/* 信号量的标志位 */
 	rt_mq_init(
-										&UART0_TxMSG,						/*消息控制指针*/
+										&UART0_TxMsq,						/*消息控制指针*/
 										"UART0_TxMSG",						/*消息名字*/
-										&UART0_TxMSG_POOL[0],				/*内存池*/
+										&UART0_TxMsq_POOL[0],				/*内存池*/
 										UART_MSG_MAX_LEN+UART_MSG_CFG_LEN,	/*每个消息的长度*/
-										sizeof(UART0_TxMSG_POOL),			/*内存池大小*/
+										sizeof(UART0_TxMsq_POOL),			/*内存池大小*/
 										RT_IPC_FLAG_FIFO);					/*先入先出*/	
 										
 	/* 启动线程，开启调度 */
 	rt_thread_startup(UART_thread);
 	rt_thread_startup(LED_thread);
+										
 	rt_thread_startup(Test1_thread);
-	
+	rt_thread_startup(Test2_thread);
+	rt_thread_startup(Test3_thread);
+	rt_thread_startup(Test4_thread);
+										
 	rt_kprintf("\n\nUART_thread  = %d\n",UART_thread);
 	rt_thread_delay(10);
 	rt_kprintf("LED_thread   = %d\n",LED_thread);
 	rt_thread_delay(10);
 	rt_kprintf("Test1_thread = %d\n",Test1_thread);	
+	rt_kprintf("Test2_thread = %d\n",Test2_thread);	
+	rt_kprintf("Test3_thread = %d\n",Test3_thread);	
+	rt_kprintf("Test4_thread = %d\n",Test4_thread);										
 	return 0;
 }
 
@@ -133,27 +178,38 @@ static void Test1Thread(void* parameter)
 
 	for(;;)
 	{	
+		MSG_TX->MSGTx(dataXXX,12);
+		rt_thread_delay(1);
+	}
+}
+static void Test2Thread(void* parameter)
+{
+	rt_thread_delay(1000);
 
-		TxStatue[0]=MSG_TX->MSGTx(dataYYY,48);
-		TxStatue[1]=MSG_TX->MSGTx(dataXXX,48);
-		TxStatue[2]=MSG_TX->MSGTx(dataYYY,48);
-		TxStatue[3]=MSG_TX->MSGTx(dataXXX,48);
+	for(;;)
+	{	
+		MSG_TX->MSGTx(dataYYY,12);
+		rt_thread_delay(1);
+	}
+}
+static void Test3Thread(void* parameter)
+{
+	rt_thread_delay(1000);
 
-//		rt_thread_delay(10);
-//		rt_kprintf("\n\n%d",MSG_TX->InBufNum);
-//		MSG_TX.MSGTx(dataXXX,40);
-//		MSG_TX.MSGTx(dataXXX,128);
-//		MSG_TX.MSGTx(dataXXX,128);
-//		rt_kprintf("\n");
-//		list_thread();
-//		rt_kprintf("\n");
-//		list_sem();
-//		rt_kprintf("\n");
-//		list_msgqueue();
-		rt_thread_delay(100);
-		
-//		rt_kprintf("\n%d %d %d %d\n",TxStatue[0],TxStatue[1],TxStatue[2],TxStatue[3]);
-		rt_thread_delay(900);
+	for(;;)
+	{	
+		MSG_TX->MSGTx(dataZZZ,12);
+		rt_thread_delay(1);
+	}
+}
+static void Test4Thread(void* parameter)
+{
+	rt_thread_delay(1000);
+
+	for(;;)
+	{	
+		MSG_TX->MSGTx(dataUUU,12);
+		rt_thread_delay(1);
 	}
 }
 

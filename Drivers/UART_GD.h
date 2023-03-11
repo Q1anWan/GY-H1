@@ -18,9 +18,9 @@
 				内存搬运使用DMA搬运数据，适合大于168字节的接收以降低CPU使用率;内存搬运会引发约3us的数据接收延迟
 				内存搬运接收需要在相应串口的USARTx_IRQHandler函数以及接收DMA的DMAx_IRQHandler函数中调用Recieve_IRQ
   
-  *Version:  	1.2.1
-  *Date:  		2023/03/06
-  *Description: 取消对Delay.c的依赖
+  *Version:  	1.2.2
+  *Date:  		2023/03/10
+  *Description: 取消对Delay.c的依赖,修订中断回调函数
   
   *Version:  	1.2
   *Date:  		2022/11/24
