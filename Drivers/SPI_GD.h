@@ -29,7 +29,7 @@
 #define SPI_USE_TX_DMA 1
 #define SPI_USE_RX_DMA 0
 /**************************/
-#define SPI_TIME_OVER_TIME 1
+#define SPI_TIME_OVER_TIME 0xFFFF
 /*! 
  *  @brief      软件SPI基类
  *  @brief		为外设提供SPI初始化、数据交换函数、CS控制、MISO控制等基本方法

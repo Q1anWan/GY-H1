@@ -148,7 +148,7 @@ long list_thread(void)
     rt_kprintf("%-*.s cpu pri  status      sp     stack size max used left tick  error\n", maxlen, item_title); object_split(maxlen);
     rt_kprintf(     " --- ---  ------- ---------- ----------  ------  ---------- ---\n");
 #else
-    rt_kprintf("%-*.s pri  status      sp   StackSizeMax  UsedLeft   tick  error\n", maxlen, item_title); object_split(maxlen);
+    rt_kprintf("%-*.s pri  status      sp    StackSize   MaxUsed   Lefttick  error\n", maxlen, item_title); object_split(maxlen);
     rt_kprintf(     " ---  ------- ---------- ----------  ------  ---------- ---\n");
 #endif /*RT_USING_SMP*/
 

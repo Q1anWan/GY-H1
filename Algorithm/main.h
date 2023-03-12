@@ -3,9 +3,9 @@
 #include "gd32f30x_it.h"
 #include "rthw.h"
 #include "rtthread.h"
+#include "usbd_core.h"
 #define GD32_LIB 
 #ifdef __cplusplus
-
 
 extern "C" {
 int main(void);

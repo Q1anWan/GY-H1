@@ -826,7 +826,7 @@ static void system_clock_120m_hxtal(void)
 
     /* enable HXTAL */
     RCU_CTL |= RCU_CTL_HXTALEN;
-
+	
     /* wait until HXTAL is stable or the startup time is longer than HXTAL_STARTUP_TIMEOUT */
     do{
         timeout++;

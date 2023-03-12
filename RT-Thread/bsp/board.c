@@ -31,6 +31,7 @@ extern void SystemCoreClockUpdate(void);
 extern uint32_t SystemCoreClock;
 
 static void CLOCK_Init(void);
+static void USB_IRCCLK(void);
 static void GPIO_Init(void);
 static void SPI_Init(void);
 static void UART_Init(void);
@@ -53,8 +54,8 @@ static uint32_t _SysTick_Config(rt_uint32_t ticks)
 }
 
 #if defined(RT_USING_USER_MAIN) && defined(RT_USING_HEAP)
-#define RT_HEAP_SIZE 4096
-static uint32_t rt_heap[RT_HEAP_SIZE];     // heap default size: 16K(4096 * 4)
+#define RT_HEAP_SIZE 8192
+static uint32_t rt_heap[RT_HEAP_SIZE];     // heap default size: 32K(8192 * 4)
 RT_WEAK void *rt_heap_begin_get(void)
 {
     return rt_heap;
@@ -85,13 +86,13 @@ void rt_hw_board_init()
 #if defined(RT_USING_USER_MAIN) && defined(RT_USING_HEAP)
     rt_system_heap_init(rt_heap_begin_get(), rt_heap_end_get());
 #endif
-		
+	
 	CLOCK_Init();
+	NVIC_Init();
 	GPIO_Init();
 	SPI_Init();
 	UART_Init();
 	DMA_Init();
-	NVIC_Init();	
 }
 
 void SysTick_Handler(void)
@@ -132,7 +133,10 @@ static void CLOCK_Init(void)
 	
 	rcu_periph_clock_enable(RCU_USART0);
 	
-	rcu_periph_clock_enable(RCU_CAN0);
+	//rcu_periph_clock_enable(RCU_CAN0);
+	USB_IRCCLK();
+	rcu_usb_clock_config(RCU_CKUSB_CKPLL_DIV1);
+	rcu_periph_clock_enable(RCU_USBD);
 	
 	rcu_periph_clock_enable(RCU_TIMER2);
 }
@@ -140,18 +144,29 @@ static void GPIO_Init(void)
 {
 	/*IMU*/
 	/*SPI0*/
-	gpio_init(GPIOA, GPIO_MODE_IN_FLOATING, GPIO_OSPEED_MAX, GPIO_PIN_3);//INT2
-	gpio_init(GPIOA, GPIO_MODE_IN_FLOATING, GPIO_OSPEED_MAX, GPIO_PIN_4);//INT1
+	gpio_init(GPIOA, GPIO_MODE_IPU, 		GPIO_OSPEED_MAX, GPIO_PIN_3);//INT2
+	gpio_init(GPIOA, GPIO_MODE_IPU, 		GPIO_OSPEED_MAX, GPIO_PIN_4);//INT1
 	gpio_init(GPIOA, GPIO_MODE_AF_PP, 		GPIO_OSPEED_MAX, GPIO_PIN_5);//SCL
-	gpio_init(GPIOA, GPIO_MODE_AIN, 		GPIO_OSPEED_MAX, GPIO_PIN_6);//MISO
+	gpio_init(GPIOA, GPIO_MODE_IN_FLOATING, GPIO_OSPEED_MAX, GPIO_PIN_6);//MISO
 	gpio_init(GPIOA, GPIO_MODE_AF_PP, 		GPIO_OSPEED_MAX, GPIO_PIN_7);//MOSI
 	gpio_init(GPIOB, GPIO_MODE_OUT_PP, 		GPIO_OSPEED_MAX, GPIO_PIN_0);//CS
+	
+	/*两个外部中断引脚设置*/
+	gpio_exti_source_select(GPIO_PORT_SOURCE_GPIOA,GPIO_PIN_SOURCE_3);
+	gpio_exti_source_select(GPIO_PORT_SOURCE_GPIOA,GPIO_PIN_SOURCE_4);
+	exti_init(EXTI_3,EXTI_INTERRUPT,EXTI_TRIG_FALLING);
+	exti_init(EXTI_4,EXTI_INTERRUPT,EXTI_TRIG_FALLING);
+	exti_interrupt_disable(EXTI_3);
+	exti_interrupt_disable(EXTI_4);
+	exti_interrupt_flag_clear(EXTI_3);
+	exti_interrupt_flag_clear(EXTI_4);
+	
 	/*TIM2_CH3*/
 	gpio_init(GPIOB, GPIO_MODE_AF_PP, 		GPIO_OSPEED_MAX, GPIO_PIN_1);//HEAT
 	
 	/*UART0*/
 	gpio_init(GPIOA, GPIO_MODE_AF_PP, 		GPIO_OSPEED_MAX, GPIO_PIN_9);//TX
-	gpio_init(GPIOA, GPIO_MODE_AIN,			GPIO_OSPEED_MAX, GPIO_PIN_10);//RX
+	gpio_init(GPIOA, GPIO_MODE_IN_FLOATING,	GPIO_OSPEED_MAX, GPIO_PIN_10);//RX
 	
 	/*KEY*/
 	gpio_init(GPIOB, GPIO_MODE_IPU, GPIO_OSPEED_MAX, GPIO_PIN_4);
@@ -159,8 +174,7 @@ static void GPIO_Init(void)
 	/*LED*/
 	/*SPI2*/
 	gpio_init(GPIOB, GPIO_MODE_AF_PP, GPIO_OSPEED_MAX, GPIO_PIN_5);
-	gpio_init(GPIOB, GPIO_MODE_OUT_PP, GPIO_OSPEED_MAX, GPIO_PIN_6);
-	/*CAM*/
+	/*CAN*/
 	gpio_init(GPIOB, GPIO_MODE_IPU, GPIO_OSPEED_MAX, GPIO_PIN_8);//RX
 	gpio_init(GPIOB, GPIO_MODE_AF_PP, GPIO_OSPEED_MAX, GPIO_PIN_9);//TX
 }
@@ -210,20 +224,20 @@ static void SPI_Init(void)
 	spi_parameter_struct  spi_init_struct;
 	
 	spi_i2s_deinit(SPI0); 
-	spi_quad_disable(SPI0);
 	spi_i2s_deinit(SPI2);
-
+	
+	spi_quad_disable(SPI0);
 	/* SPI0 parameter config */
 	spi_init_struct.trans_mode           = SPI_TRANSMODE_FULLDUPLEX;
 	spi_init_struct.device_mode          = SPI_MASTER;
 	spi_init_struct.frame_size           = SPI_FRAMESIZE_8BIT;
 	spi_init_struct.clock_polarity_phase = SPI_CK_PL_LOW_PH_1EDGE;
 	spi_init_struct.nss                  = SPI_NSS_SOFT;
-	spi_init_struct.prescale             = SPI_PSC_16;
+	spi_init_struct.prescale             = SPI_PSC_32;
 	spi_init_struct.endian               = SPI_ENDIAN_MSB;
-	//15MHz
+	//18MHz
 	spi_init(SPI0, &spi_init_struct);
-	//3.75MHz
+	//2.25MHz
 	spi_init_struct.prescale        	 = SPI_PSC_64;
 	spi_init(SPI2, &spi_init_struct);
 	spi_dma_enable(SPI2,SPI_DMA_TRANSMIT);
@@ -246,4 +260,27 @@ static void NVIC_Init(void)
     nvic_irq_enable(DMA1_Channel1_IRQn,2,1);//SPI2 RX
 	nvic_irq_enable(DMA0_Channel3_IRQn,1,1);//USART0 TX
 	nvic_irq_enable(DMA0_Channel4_IRQn,1,1);//USART0 RX
+	nvic_irq_enable(EXTI3_IRQn,0,1);//INT2
+	nvic_irq_enable(EXTI4_IRQn,0,0);//INT1
+
+    nvic_irq_enable((uint8_t)USBD_LP_CAN0_RX0_IRQn, 1U, 2U);
+    nvic_irq_enable((uint8_t)USBD_HP_CAN0_TX_IRQn, 1U, 2U);
+}
+static void USB_IRCCLK(void)
+{
+	uint32_t timeout = 0U;
+    uint32_t stab_flag = 0U;
+	/*启动内部IRC48M振荡器*/
+	RCU_ADDCTL |= RCU_ADDCTL_IRC48MEN;
+	/*等待振荡器稳定*/
+	do{
+        timeout++;
+        stab_flag = (RCU_ADDCTL & RCU_ADDCTL_IRC48MSTB);
+    }while((0U == stab_flag) && (HXTAL_STARTUP_TIMEOUT != timeout));
+	
+	/*使用CTC校准振荡器*/
+	/*需要外部参考时钟源*/
+	
+	/*设置USB输入时钟*/
+    rcu_ck48m_clock_config(RCU_CK48MSRC_IRC48M);
 }
