@@ -3,9 +3,9 @@
 
 
 /*程序串口发送控制*/
-cMSG  *MSG_TX;
-usb_cdc_handler *USB_COM = RT_NULL;
-static usb_dev *my_usb_dev = RT_NULL;
+cMSG  *Msg;
+
+usb_dev *my_usb_dev = RT_NULL;
 /*串口进程控制指针*/
 rt_thread_t UART_thread = RT_NULL;
 /*发送完成控制信号量*/
@@ -32,8 +32,8 @@ void UARTThread(void* parameter)
 	uint8_t IsHead = 0;//是否需要添加包头
 	uint16_t TxLen = 0;//数据部分长度
 
-	MSG_TX = new cMSG;
-	MSG_TX->UART_Init(USART0,DMA0,DMA_CH4,DMA0,DMA_CH3);
+	Msg = new cMSG;
+	Msg->UART_Init(USART0,DMA0,DMA_CH4,DMA0,DMA_CH3);
 	for(;;)
 	{
 		/*等待接收完成*/
@@ -43,7 +43,7 @@ void UARTThread(void* parameter)
 
 void DMA0_Channel3_IRQHandler(void)
 {
-	if(MSG_TX->Transmit_IRQ()){
+	if(Msg->Transmit_IRQ()){
 	rt_sem_release(UART0_TxSem);
 	}
 }
@@ -52,32 +52,26 @@ void DMA0_Channel3_IRQHandler(void)
 void USBDThread(void* parameter)
 {
 	my_usb_dev = new usb_dev;
-	USB_COM = (usb_cdc_handler *)my_usb_dev->class_data[CDC_COM_INTERFACE];
 	usbd_init(my_usb_dev,&cdc_desc,&cdc_class);
+	Msg->USB_COM = (usb_cdc_handler *)my_usb_dev->class_data[CDC_COM_INTERFACE];
 	usbd_connect(my_usb_dev);
 	/* wait for standard USB enumeration is finished */
     if(my_usb_dev->cur_status == USBD_CONNECTED){rt_kprintf("USB Connective");}
 	for(;;)
 	{
-		 if (0U == cdc_acm_check_ready(my_usb_dev)) {
-            cdc_acm_data_receive(my_usb_dev);
-        } else {
-            cdc_acm_data_send(my_usb_dev);
-        }
-		
-//		if(my_usb_dev->cur_status == USBD_CONFIGURED)
-//		{
-//			uint8_t a[15]={1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
-//			usbd_ep_send(my_usb_dev, CDC_IN_EP, a, 15);
-//		}
-		rt_thread_delay(1);
+		rt_sem_take(USBD_Sem,RT_WAITING_FOREVER);
+		Msg->USB_COM = (usb_cdc_handler *)my_usb_dev->class_data[CDC_COM_INTERFACE];
+		usbd_ep_send(my_usb_dev, CDC_IN_EP, Msg->USB_COM->data, Msg->USB_COM->receive_length);
+		rt_kprintf("\n\nUSBRec Len = %d\n",Msg->USB_COM->receive_length);
+		Msg->UartTx(Msg->USB_COM->data,Msg->USB_COM->receive_length);
+		rt_kprintf("\n\n");
 	}
 }
 
 void USBD_LP_CAN0_RX0_IRQHandler(void)
 {
 	usbd_isr();
-    rt_sem_release(USBD_Sem);
+    
 }
 
 void USBD_WKUP_IRQHandler(void)
@@ -94,7 +88,7 @@ void USBD_WKUP_IRQHandler(void)
 	压入缓冲时:
 	使用消息队列作为缓冲区
 */
-uint8_t cMSG::MSGTx(uint8_t *pdata, uint16_t Length)
+uint8_t cMSG::UartTx(uint8_t *pdata, uint16_t Length)
 {
 	if(pdata==0){return 1;}
 	/*直接使用DMA发送*/
@@ -107,7 +101,7 @@ uint8_t cMSG::MSGTx(uint8_t *pdata, uint16_t Length)
 /*
 	在上面函数的基础上，添加一个数据包头
 */
-uint8_t cMSG::MSGTx(uint8_t Head, uint8_t *pdata, uint16_t Length)
+uint8_t cMSG::UartTx(uint8_t Head, uint8_t *pdata, uint16_t Length)
 {
 	if(pdata==0){return 1;}
 	/*直接使用DMA发送*/
@@ -127,8 +121,7 @@ void cMSG::Printf(const char * format, ...)
 	va_start(args, format);
 	uint8_t Len = vsnprintf(buf,128,format, args);
 	va_end (args);
-	while(this->MSGTx((uint8_t*)buf,Len)==1);
-	
+	this->UartTx((uint8_t*)buf,Len);
 	rt_free(buf);
 }
 
@@ -155,6 +148,6 @@ void rt_hw_console_output(const char *str)
 	#else
 	uint16_t i=0;
 	while(*(str+i) != '\0'){i++;}
-	MSG_TX->MSGTx((uint8_t *)str,i);
+	Msg->UartTx((uint8_t *)str,i);
 	#endif
 }

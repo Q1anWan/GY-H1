@@ -1,15 +1,18 @@
 #include "IMU.h"
 #include "MsgThread.h"
-cICM42688 *IMU;
+
+
+cIMU *IMU;
 /*IMU进程控制指针*/
 rt_thread_t IMU_thread = RT_NULL;
 rt_thread_t IMUSlaver_thread = RT_NULL;
+rt_thread_t IMUHeat_thread = RT_NULL;
 rt_sem_t IMU_INT1Sem = RT_NULL;	
 rt_sem_t IMU_INT2Sem = RT_NULL;
 static void IMU_Init();
 void IMUThread(void* parameter)
 {
-	IMU = new cICM42688;
+	IMU = new cIMU();
 	uint8_t Test;
 	IMU->SPI_Init(SPI0,GPIOB,GPIO_PIN_0);
 	rt_thread_delay(1000);
@@ -26,11 +29,31 @@ void IMUThread(void* parameter)
 		}
 	}
 }
+
 void IMU2Thread(void* parameter)
 {
 	for(;;)
 	{
 		rt_sem_take(IMU_INT2Sem,RT_WAITING_FOREVER);
+	}
+}
+
+void IMUHeatThread(void* parameter)
+{
+	rt_tick_t Ticker = 0;
+	uint32_t PWM=0;
+
+	rt_thread_delay(100);
+	/*数据常为25度时测温异常，不对加热进行初始化*/
+	while(IMU->Temperature==25.0f)
+	{rt_thread_delay(100);}
+	for(;;)
+	{
+		
+		Ticker = rt_tick_get();
+		PWM = (uint32_t)IMU->PID_Cal(IMU->Temperature);
+		timer_channel_output_pulse_value_config(TIMER2,TIMER_CH_3,PWM);
+		rt_thread_delay_until(&Ticker,20);
 	}
 }
 

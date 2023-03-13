@@ -43,8 +43,10 @@ extern rt_sem_t USBD_Sem;
 
 extern void IMUThread(void* parameter);
 extern void IMU2Thread(void* parameter);
+extern void IMUHeatThread(void* parameter);
 extern rt_thread_t IMU_thread;
 extern rt_thread_t IMUSlaver_thread;
+extern rt_thread_t IMUHeat_thread;
 extern rt_sem_t IMU_INT1Sem;	
 extern rt_sem_t IMU_INT2Sem;
 
@@ -77,7 +79,7 @@ int main(void)
 										Test2Thread,   		/* 线程入口函数 */
 										RT_NULL,            /* 线程入口函数参数 */
 										512,                /* 线程栈大小 */
-										3,                  /* 线程的优先级 */
+										5,                  /* 线程的优先级 */
 										5);                /* 线程时间片 */
 	Test3_thread =                          				/* 线程控制块指针 */
 	rt_thread_create( 					"Test3",            /* 线程名字 */
@@ -100,7 +102,7 @@ int main(void)
 										RT_NULL,            /* 线程入口函数参数 */
 										512,                /* 线程栈大小 */
 										2,                  /* 线程的优先级 */
-										1);                 /* 线程时间片 */
+										5);                 /* 线程时间片 */
 	
 	UART0_TxMut =
 	rt_mutex_create(					"UART0_TxMut",		/* 互斥锁的名称 */
@@ -122,7 +124,7 @@ int main(void)
 										RT_NULL,            /* 线程入口函数参数 */
 										512,               /* 线程栈大小 */
 										2,                  /* 线程的优先级 */
-										1);                 /* 线程时间片 */
+										5);                 /* 线程时间片 */
 
 	USBD_Sem	=
 	rt_sem_create(						"USBD_Sem",			/* 信号量的名称 */
@@ -145,6 +147,14 @@ int main(void)
 										1,                  /* 线程的优先级 */
 										1);                 /* 线程时间片 */
 										
+	IMUHeat_thread =                          			/* 线程控制块指针 */
+	rt_thread_create( 					"IMUHeat",        /* 线程名字 */
+										IMUHeatThread,   		/* 线程入口函数 */
+										RT_NULL,            /* 线程入口函数参数 */
+										256,                /* 线程栈大小 */
+										5,                  /* 线程的优先级 */
+										1);                 /* 线程时间片 */
+										
 	IMU_INT1Sem	=
 	rt_sem_create(						"IMU_INT1Sem",		/* 信号量的名称 */
 										0,					/* 初始化的值 */
@@ -156,7 +166,6 @@ int main(void)
 										RT_IPC_FLAG_FIFO);	/* 信号量的标志位 */										
 	/* 启动线程，开启调度 */
 	rt_thread_startup(UART_thread);
-	rt_thread_startup(USBD_thread);
 	#ifdef qwDbug									
 	rt_kprintf("\n\nUART_thread  = %d\n",UART_thread);rt_thread_delay(2);	
 	rt_kprintf("LED_thread   = %d\n",LED_thread);rt_thread_delay(2);
@@ -168,10 +177,12 @@ int main(void)
 	rt_thread_startup(LED_thread);					
 	rt_thread_startup(Test1_thread);
 	rt_thread_startup(IMU_thread);
-	rt_thread_startup(IMUSlaver_thread);
+//	rt_thread_startup(IMUSlaver_thread);
+	rt_thread_startup(IMUHeat_thread);
 	rt_thread_startup(Test2_thread);
 //	rt_thread_startup(Test3_thread);
 //	rt_thread_startup(Test4_thread);
+	rt_thread_startup(USBD_thread);
 	return 0;
 }
 
@@ -235,10 +246,10 @@ static void Test2Thread(void* parameter)
 
 	for(;;)
 	{	
-		MSG_TX->Printf("GYRO:  %d %d %d\n",IMU->Gyro[0],IMU->Gyro[1],IMU->Gyro[2]);rt_thread_delay(1);
-		MSG_TX->Printf("Accel: %d %d %d\n",IMU->Accel[0],IMU->Accel[1],IMU->Accel[2]);rt_thread_delay(1);
-		MSG_TX->Printf("Tem: %f\n\n",IMU->Temperature);
-		rt_thread_delay(490);
+		rt_kprintf("GYRO:  %d %d %d\n",IMU->Gyro[0],IMU->Gyro[1],IMU->Gyro[2]);
+		rt_kprintf("Accel: %d %d %d\n",IMU->Accel[0],IMU->Accel[1],IMU->Accel[2]);rt_thread_delay(1);
+		Msg->Printf("Tem: %f\n\n",IMU->Temperature);rt_thread_delay(1);
+		rt_thread_delay(997);
 	}
 }
 static void Test3Thread(void* parameter)
@@ -247,7 +258,7 @@ static void Test3Thread(void* parameter)
 
 	for(;;)
 	{	
-		MSG_TX->MSGTx(0xAA,dataZZZ,12);
+		Msg->UartTx(0xAA,dataZZZ,12);
 		rt_thread_delay(10);
 	}
 }
@@ -257,7 +268,7 @@ static void Test4Thread(void* parameter)
 
 	for(;;)
 	{	
-		MSG_TX->MSGTx(dataUUU,12);
+		Msg->UartTx(dataUUU,12);
 		rt_thread_delay(10);
 	}
 }

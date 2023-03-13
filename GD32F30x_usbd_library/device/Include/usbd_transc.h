@@ -52,7 +52,7 @@ __STATIC_INLINE void usb_transc_config (usb_transc *transc, uint8_t *buf, uint16
     transc->xfer_buf = buf;
     transc->xfer_len = len;
     transc->xfer_count = count;
-}
+} 
 
 /*!
     \brief      USB stalled transaction

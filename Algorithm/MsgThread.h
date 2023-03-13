@@ -10,12 +10,15 @@
 
 class cMSG : public cUART
 {
+	
 	public:
-	uint8_t MSGTx(uint8_t *pdata, uint16_t Length);
-	uint8_t MSGTx(uint8_t Head, uint8_t *pdata, uint16_t Length);
+	usb_cdc_handler *USB_COM = RT_NULL;
+	
+	uint8_t UartTx(uint8_t *pdata, uint16_t Length);
+	uint8_t UartTx(uint8_t Head, uint8_t *pdata, uint16_t Length);
 	void Printf(const char * format, ...);
 };
-extern cMSG *MSG_TX;
+extern cMSG *Msg;
 
 extern "C" {
 void DMA0_Channel3_IRQHandler(void);

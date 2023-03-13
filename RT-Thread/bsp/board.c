@@ -35,6 +35,7 @@ static void USB_IRCCLK(void);
 static void GPIO_Init(void);
 static void SPI_Init(void);
 static void UART_Init(void);
+static void Timer_Init(void);
 static void DMA_Init(void);
 static void NVIC_Init(void);
 
@@ -92,6 +93,7 @@ void rt_hw_board_init()
 	GPIO_Init();
 	SPI_Init();
 	UART_Init();
+	Timer_Init();
 	DMA_Init();
 }
 
@@ -133,12 +135,14 @@ static void CLOCK_Init(void)
 	
 	rcu_periph_clock_enable(RCU_USART0);
 	
+	rcu_periph_clock_enable(RCU_TIMER2);
+	
 	//rcu_periph_clock_enable(RCU_CAN0);
 	USB_IRCCLK();
 	rcu_usb_clock_config(RCU_CKUSB_CKPLL_DIV1);
 	rcu_periph_clock_enable(RCU_USBD);
 	
-	rcu_periph_clock_enable(RCU_TIMER2);
+
 }
 static void GPIO_Init(void)
 {
@@ -233,7 +237,7 @@ static void SPI_Init(void)
 	spi_init_struct.frame_size           = SPI_FRAMESIZE_8BIT;
 	spi_init_struct.clock_polarity_phase = SPI_CK_PL_LOW_PH_1EDGE;
 	spi_init_struct.nss                  = SPI_NSS_SOFT;
-	spi_init_struct.prescale             = SPI_PSC_32;
+	spi_init_struct.prescale             = SPI_PSC_16;
 	spi_init_struct.endian               = SPI_ENDIAN_MSB;
 	//18MHz
 	spi_init(SPI0, &spi_init_struct);
@@ -252,6 +256,42 @@ static void UART_Init(void)
 	usart_dma_transmit_config(USART0, USART_TRANSMIT_DMA_ENABLE);
 	usart_interrupt_enable(USART0,USART_INT_IDLE);
     usart_enable(USART0);
+}
+static void Timer_Init(void)
+{
+	timer_oc_parameter_struct timer_ocintpara;
+    timer_parameter_struct timer_initpara;
+	
+	timer_deinit(TIMER2);
+
+    /* TIMER2 configuration */
+    timer_initpara.prescaler         = 287;
+    timer_initpara.alignedmode       = TIMER_COUNTER_EDGE;
+    timer_initpara.counterdirection  = TIMER_COUNTER_UP;
+    timer_initpara.period            = 999;
+    timer_initpara.clockdivision     = TIMER_CKDIV_DIV1;
+    timer_initpara.repetitioncounter = 0;
+    timer_init(TIMER2,&timer_initpara);
+	
+	 /* CH3 configuration in PWM mode */
+    timer_ocintpara.outputstate  = TIMER_CCX_ENABLE;
+    timer_ocintpara.outputnstate = TIMER_CCXN_DISABLE;
+    timer_ocintpara.ocpolarity   = TIMER_OC_POLARITY_HIGH;
+    timer_ocintpara.ocnpolarity  = TIMER_OCN_POLARITY_HIGH;
+    timer_ocintpara.ocidlestate  = TIMER_OC_IDLE_STATE_LOW;
+    timer_ocintpara.ocnidlestate = TIMER_OCN_IDLE_STATE_LOW;
+
+    timer_channel_output_config(TIMER2,TIMER_CH_3,&timer_ocintpara);
+    
+    /* CH3 configuration in PWM mode0,duty cycle 0% */
+    timer_channel_output_pulse_value_config(TIMER2,TIMER_CH_3,0);
+    timer_channel_output_mode_config(TIMER2,TIMER_CH_3,TIMER_OC_MODE_PWM0);
+    timer_channel_output_shadow_config(TIMER2,TIMER_CH_3,TIMER_OC_SHADOW_DISABLE);
+	
+	 /* auto-reload preload enable */
+    timer_auto_reload_shadow_enable(TIMER2);
+    /* auto-reload preload enable */
+    timer_enable(TIMER2);
 }
 static void NVIC_Init(void)
 {

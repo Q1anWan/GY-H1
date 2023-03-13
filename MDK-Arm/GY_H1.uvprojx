@@ -526,6 +526,11 @@
               <FilePath>..\Drivers\gd32f30x_it.c</FilePath>
             </File>
             <File>
+              <FileName>PID.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>..\Drivers\PID.cpp</FilePath>
+            </File>
+            <File>
               <FileName>SPI_GD.cpp</FileName>
               <FileType>8</FileType>
               <FilePath>..\Drivers\SPI_GD.cpp</FilePath>
@@ -619,6 +624,46 @@
               <FileName>SupportFunctions.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\DSP\Source\SupportFunctions\SupportFunctions.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>USB</GroupName>
+          <Files>
+            <File>
+              <FileName>usbd_core.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\GD32F30x_usbd_library\device\Source\usbd_core.c</FilePath>
+            </File>
+            <File>
+              <FileName>usbd_enum.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\GD32F30x_usbd_library\device\Source\usbd_enum.c</FilePath>
+            </File>
+            <File>
+              <FileName>usbd_pwr.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\GD32F30x_usbd_library\device\Source\usbd_pwr.c</FilePath>
+            </File>
+            <File>
+              <FileName>usbd_transc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\GD32F30x_usbd_library\device\Source\usbd_transc.c</FilePath>
+            </File>
+            <File>
+              <FileName>usbd_lld_core.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\GD32F30x_usbd_library\usbd\Source\usbd_lld_core.c</FilePath>
+            </File>
+            <File>
+              <FileName>usbd_lld_int.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\GD32F30x_usbd_library\usbd\Source\usbd_lld_int.c</FilePath>
+            </File>
+            <File>
+              <FileName>cdc_acm_core.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\GD32F30x_usbd_library\class\device\cdc\Source\cdc_acm_core.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -729,46 +774,6 @@
               <FileName>cmd.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\RT-Thread\components\finsh\cmd.c</FilePath>
-            </File>
-          </Files>
-        </Group>
-        <Group>
-          <GroupName>USB</GroupName>
-          <Files>
-            <File>
-              <FileName>usbd_core.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\GD32F30x_usbd_library\device\Source\usbd_core.c</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_enum.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\GD32F30x_usbd_library\device\Source\usbd_enum.c</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_pwr.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\GD32F30x_usbd_library\device\Source\usbd_pwr.c</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_transc.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\GD32F30x_usbd_library\device\Source\usbd_transc.c</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_lld_core.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\GD32F30x_usbd_library\usbd\Source\usbd_lld_core.c</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_lld_int.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\GD32F30x_usbd_library\usbd\Source\usbd_lld_int.c</FilePath>
-            </File>
-            <File>
-              <FileName>cdc_acm_core.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\GD32F30x_usbd_library\class\device\cdc\Source\cdc_acm_core.c</FilePath>
             </File>
           </Files>
         </Group>

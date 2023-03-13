@@ -35,6 +35,7 @@ OF SUCH DAMAGE.
 
 #include "usbd_transc.h"
 #include "cdc_acm_core.h"
+#include "MsgThread.h"
 
 #define USBD_VID                          0x28E9U
 #define USBD_PID                          0x018AU
@@ -363,7 +364,9 @@ static uint8_t cdc_acm_init (usb_dev *udev, uint8_t config_index)
     };
 
     udev->class_data[CDC_COM_INTERFACE] = (void *)&cdc_handler;
-
+	//读一次数据，清空FIF0
+	usb_cdc_handler *cdc = (usb_cdc_handler *)udev->class_data[CDC_COM_INTERFACE];
+	usbd_ep_recev(udev, CDC_OUT_EP, (uint8_t*)(cdc->data), USB_CDC_RX_LEN);
     return USBD_OK;
 }
 
@@ -426,6 +429,7 @@ static void cdc_acm_data_in (usb_dev *udev, uint8_t ep_num)
     }
 }
 
+extern rt_sem_t USBD_Sem;
 /*!
     \brief      handle CDC ACM data out transaction
     \param[in]  udev: pointer to USB device instance
@@ -440,6 +444,9 @@ static void cdc_acm_data_out (usb_dev *udev, uint8_t ep_num)
     cdc->packet_receive = 1U;
 
     cdc->receive_length = udev->transc_out[ep_num].xfer_count;
+	/*提醒程序提取数据*/
+	usbd_ep_recev(udev, CDC_OUT_EP, (uint8_t*)(cdc->data), USB_CDC_RX_LEN);
+	rt_sem_release(USBD_Sem);
 }
 
 /*!
