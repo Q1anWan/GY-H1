@@ -550,6 +550,11 @@
               <FileType>8</FileType>
               <FilePath>..\Drivers\ICM42688.cpp</FilePath>
             </File>
+            <File>
+              <FileName>Flash_GD.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Drivers\Flash_GD.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
