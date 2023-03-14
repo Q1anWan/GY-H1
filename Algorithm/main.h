@@ -5,8 +5,8 @@
 #include "rtthread.h"
 #include "usbd_core.h"
 #define GD32_LIB 
-#define FLASH_USERDATA_ADDRESS		 ((uint32_t)0x803F800U)//Page 127
-#define FLASH_USERDATA_DATAWORDS	 ((uint16_t)0x05U));
+#define FLASH_USERDATA_ADDRESS		 ((uint32_t)0x803F800)//Page 127
+#define FLASH_USERDATA_DATAWORDS	 ((uint16_t)0x05));
 /*
 	Word[0]: Config
 	Word[1]: GyroCali-X GyroCali-Y

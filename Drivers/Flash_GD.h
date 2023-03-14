@@ -9,13 +9,17 @@ extern "C" {
 #endif
 /*!
     \brief      read Data at Addr
-    \param[in]  Addr: Address
+    \param[in]  Addr: Address  Data:Read data buf  Words:Number of words
     \param[out] none
 	\retval     Word at Addr
 */
-inline uint32_t fmc_read_u32(uint32_t Addr)
+inline void fmc_read_u32(uint32_t Addr, uint32_t *Data, uint16_t Words)
 {
-	return *(volatile uint32_t *)Addr;
+	for(uint16_t i=0;i<Words;i++)
+	{
+		Data[i] = *(volatile uint32_t *)Addr;
+		Addr+=4;
+	}
 }
 uint8_t fmc_erase_pages(uint32_t StartAddr,uint16_t Pages);
 uint8_t fmc_program(uint32_t Addr, uint32_t *Words, uint16_t num);

@@ -13,6 +13,7 @@
 #include <rthw.h>
 #include <rtthread.h>
 #include "main.h"
+#include "Flash_GD.h"
 
 #define _SCB_BASE       (0xE000E010UL)
 #define _SYSTICK_CTRL   (*(rt_uint32_t *)(_SCB_BASE + 0x0))
@@ -38,6 +39,7 @@ static void UART_Init(void);
 static void Timer_Init(void);
 static void DMA_Init(void);
 static void NVIC_Init(void);
+static void Flash_Check(void);
 
 static uint32_t _SysTick_Config(rt_uint32_t ticks)
 {
@@ -88,6 +90,7 @@ void rt_hw_board_init()
     rt_system_heap_init(rt_heap_begin_get(), rt_heap_end_get());
 #endif
 	
+	Flash_Check();
 	CLOCK_Init();
 	NVIC_Init();
 	GPIO_Init();
@@ -323,4 +326,27 @@ static void USB_IRCCLK(void)
 	
 	/*…Ë÷√USB ‰»Î ±÷”*/
     rcu_ck48m_clock_config(RCU_CK48MSRC_IRC48M);
+}
+static void Flash_Check(void)
+{
+	rcu_periph_clock_enable(RCU_CRC);
+	
+	uint32_t buf[5];
+	fmc_read_u32(FLASH_USERDATA_ADDRESS,buf,5);
+
+	crc_data_register_reset();
+	if(buf[4]!=crc_block_data_calculate(buf,4))
+	{
+		fmc_erase_pages(FLASH_USERDATA_ADDRESS,1);
+	
+		buf[0]=0x01;
+		buf[1]=0x00;
+		buf[2]=0x00;
+		buf[3]=0x00;
+		crc_data_register_reset();
+		buf[4]=crc_block_data_calculate(buf,4);
+	
+		fmc_program(FLASH_USERDATA_ADDRESS,buf,5);
+		fmc_program_check(FLASH_USERDATA_ADDRESS,5,buf);
+	}
 }
