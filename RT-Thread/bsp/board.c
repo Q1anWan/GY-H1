@@ -141,6 +141,11 @@ static void CLOCK_Init(void)
 	rcu_periph_clock_enable(RCU_TIMER2);
 	
 	//rcu_periph_clock_enable(RCU_CAN0);
+	gpio_init(GPIOA, GPIO_MODE_OUT_PP, GPIO_OSPEED_MAX, GPIO_PIN_12);//D+
+	gpio_bit_reset(GPIOA,GPIO_PIN_12);
+	rt_hw_us_delay(999);
+	gpio_bit_set(GPIOA,GPIO_PIN_12);
+	gpio_deinit(GPIOA);
 	USB_IRCCLK();
 	rcu_usb_clock_config(RCU_CKUSB_CKPLL_DIV1);
 	rcu_periph_clock_enable(RCU_USBD);
@@ -302,12 +307,12 @@ static void NVIC_Init(void)
 	
     nvic_irq_enable(DMA1_Channel1_IRQn,2,1);//SPI2 RX
 	nvic_irq_enable(DMA0_Channel3_IRQn,1,1);//USART0 TX
-	nvic_irq_enable(DMA0_Channel4_IRQn,1,1);//USART0 RX
+	nvic_irq_enable(USART0_IRQn,1,1);//USART0 RX
 	nvic_irq_enable(EXTI3_IRQn,0,1);//INT2
 	nvic_irq_enable(EXTI4_IRQn,0,0);//INT1
 
-    nvic_irq_enable((uint8_t)USBD_LP_CAN0_RX0_IRQn, 1U, 2U);
-    nvic_irq_enable((uint8_t)USBD_HP_CAN0_TX_IRQn, 1U, 2U);
+    nvic_irq_enable(USBD_LP_CAN0_RX0_IRQn, 1U, 2U);
+    nvic_irq_enable(USBD_HP_CAN0_TX_IRQn, 1U, 2U);
 }
 static void USB_IRCCLK(void)
 {

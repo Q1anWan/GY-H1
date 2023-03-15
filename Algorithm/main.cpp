@@ -3,6 +3,7 @@
 #include "arm_math.h"
 #include "WS281x.h"
 #include "MsgThread.h"
+#include "Controller.h"
 #include "IMU.h"
 
 uint16_t TxNum = 0;
@@ -39,7 +40,13 @@ extern rt_sem_t UART0_RxSem;
 
 extern void USBDThread(void* parameter);
 extern rt_thread_t USBD_thread;
+extern rt_mutex_t USB_TxMut;
 extern rt_sem_t USBD_Sem;
+
+extern void ConfigThread(void* parameter);
+extern rt_thread_t Config_thread;
+extern rt_mailbox_t Config_mailbox;
+
 
 extern void IMUThread(void* parameter);
 extern void IMU2Thread(void* parameter);
@@ -78,7 +85,7 @@ int main(void)
 	rt_thread_create( 					"Test2",            /* 线程名字 */
 										Test2Thread,   		/* 线程入口函数 */
 										RT_NULL,            /* 线程入口函数参数 */
-										512,                /* 线程栈大小 */
+										768,                /* 线程栈大小 */
 										5,                  /* 线程的优先级 */
 										5);                /* 线程时间片 */
 	Test3_thread =                          				/* 线程控制块指针 */
@@ -115,7 +122,7 @@ int main(void)
 	
 	UART0_RxSem	=
 	rt_sem_create(						"UART0_RxSem",		/* 信号量的名称 */
-										0,					/* 初始化的值 */
+										1,					/* 初始化的值 */
 										RT_IPC_FLAG_FIFO);	/* 信号量的标志位 */
 										
 	USBD_thread =                          					/* 线程控制块指针 */
@@ -130,6 +137,24 @@ int main(void)
 	rt_sem_create(						"USBD_Sem",			/* 信号量的名称 */
 										0,					/* 初始化的值 */
 										RT_IPC_FLAG_FIFO);	/* 信号量的标志位 */
+
+	USB_TxMut =
+	rt_mutex_create(					"USB_TxMut",		/* 互斥锁的名称 */
+										RT_IPC_FLAG_FIFO);	/* 互斥锁的标志位 */
+										
+	Config_thread =                          				/* 线程控制块指针 */
+	rt_thread_create( 					"Config",           /* 线程名字 */
+										ConfigThread,   	/* 线程入口函数 */
+										RT_NULL,            /* 线程入口函数参数 */
+										256,              	/* 线程栈大小 */
+										2,                  /* 线程的优先级 */
+										5);                 /* 线程时间片 */	
+
+	Config_mailbox =
+	rt_mb_create(						"Config_Mb",		/*邮箱名称*/
+										8,					/*邮箱容量*/
+										RT_IPC_FLAG_FIFO);	/*邮箱方式*/
+										
 
 	IMU_thread =                          					/* 线程控制块指针 */
 	rt_thread_create( 					"IMU",              /* 线程名字 */
@@ -151,7 +176,7 @@ int main(void)
 	rt_thread_create( 					"IMUHeat",        /* 线程名字 */
 										IMUHeatThread,   		/* 线程入口函数 */
 										RT_NULL,            /* 线程入口函数参数 */
-										256,                /* 线程栈大小 */
+										364,                /* 线程栈大小 */
 										5,                  /* 线程的优先级 */
 										1);                 /* 线程时间片 */
 										
@@ -183,6 +208,7 @@ int main(void)
 //	rt_thread_startup(Test3_thread);
 //	rt_thread_startup(Test4_thread);
 	rt_thread_startup(USBD_thread);
+	rt_thread_startup(Config_thread);
 	return 0;
 }
 
@@ -258,7 +284,7 @@ static void Test3Thread(void* parameter)
 
 	for(;;)
 	{	
-		Msg->UartTx(0xAA,dataZZZ,12);
+		Msg->UartTx(0xAA,dataZZZ,12,RT_WAITING_FOREVER);
 		rt_thread_delay(10);
 	}
 }
@@ -268,7 +294,7 @@ static void Test4Thread(void* parameter)
 
 	for(;;)
 	{	
-		Msg->UartTx(dataUUU,12);
+		Msg->UartTx(dataUUU,12,RT_WAITING_FOREVER);
 		rt_thread_delay(10);
 	}
 }

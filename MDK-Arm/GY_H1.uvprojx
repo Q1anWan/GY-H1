@@ -555,6 +555,11 @@
               <FileType>1</FileType>
               <FilePath>..\Drivers\Flash_GD.c</FilePath>
             </File>
+            <File>
+              <FileName>CRC8.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Drivers\CRC8.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -574,6 +579,11 @@
               <FileName>IMU.cpp</FileName>
               <FileType>8</FileType>
               <FilePath>..\Algorithm\IMU.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>Controller.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>..\Algorithm\Controller.cpp</FilePath>
             </File>
           </Files>
         </Group>

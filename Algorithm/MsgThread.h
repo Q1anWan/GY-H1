@@ -12,16 +12,20 @@ class cMSG : public cUART
 {
 	
 	public:
+	uint8_t UartRecBuf[10];
 	usb_cdc_handler *USB_COM = RT_NULL;
 	
-	uint8_t UartTx(uint8_t *pdata, uint16_t Length);
-	uint8_t UartTx(uint8_t Head, uint8_t *pdata, uint16_t Length);
+	uint8_t UartTx(uint8_t *pdata, uint16_t Length, rt_int32_t WaitTime);
+	uint8_t UartTx(uint8_t Head, uint8_t *pdata, uint16_t Length, rt_int32_t WaitTime);
 	void Printf(const char * format, ...);
+	
+	uint8_t USBTx(uint8_t *pdata, uint16_t Length, rt_int32_t WaitTime);
 };
 extern cMSG *Msg;
 
 extern "C" {
 void DMA0_Channel3_IRQHandler(void);
+void USART0_IRQHandler(void);
 void rt_hw_console_output(const char *str);
 void USBD_LP_CAN0_RX0_IRQHandler(void);
 void USBD_WKUP_IRQHandler(void);

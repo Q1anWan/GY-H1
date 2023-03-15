@@ -1,9 +1,11 @@
 #include "MsgThread.h"
+#include "Controller.h"
+#include "CRC8.h"
 #include <stdio.h>
-
 
 /*程序串口发送控制*/
 cMSG  *Msg;
+
 
 usb_dev *my_usb_dev = RT_NULL;
 /*串口进程控制指针*/
@@ -19,8 +21,14 @@ rt_mutex_t UART0_TxMut = RT_NULL;
 rt_thread_t USBD_thread = RT_NULL;
 /*USB中断控制信号量*/
 rt_sem_t USBD_Sem = RT_NULL;
+/*发送控制互斥锁*/
+rt_mutex_t USB_TxMut = RT_NULL;
 /*USBD接收缓冲区*/
 uint8_t *USBD_rev_buf;
+
+
+extern  rt_thread_t Config_thread;
+extern rt_mailbox_t Config_mailbox;
 
 /*
 	串口控制进程
@@ -32,12 +40,24 @@ void UARTThread(void* parameter)
 	uint8_t IsHead = 0;//是否需要添加包头
 	uint16_t TxLen = 0;//数据部分长度
 
-	Msg = new cMSG;
+	Msg = new cMSG; 
 	Msg->UART_Init(USART0,DMA0,DMA_CH4,DMA0,DMA_CH3);
+ 
 	for(;;)
 	{
-		/*等待接收完成*/
+		/*接收进程处理*/
 		rt_sem_take(UART0_RxSem,RT_WAITING_FOREVER);
+		
+		if(Msg->cUART::Recieve_Length == SYS_CONFIG_PACK_LEN)//长度正确
+		{
+			Msg->UartTx(Msg->UartRecBuf,4,2);//回复信息
+			if(Msg->UartRecBuf[3]==cal_crc8_table(Msg->UartRecBuf,3))//CRC通过
+			{
+				uint16_t mb_buf = (Msg->UartRecBuf[1]<<8) | (Msg->UartRecBuf[2]);
+				rt_mb_send(Config_mailbox,(rt_ubase_t)mb_buf);
+			}
+		}
+		Msg->Recieve_DMA(Msg->UartRecBuf,16);//再次进入接受模式
 	}
 }
 
@@ -61,10 +81,15 @@ void USBDThread(void* parameter)
 	{
 		rt_sem_take(USBD_Sem,RT_WAITING_FOREVER);
 		Msg->USB_COM = (usb_cdc_handler *)my_usb_dev->class_data[CDC_COM_INTERFACE];
-		usbd_ep_send(my_usb_dev, CDC_IN_EP, Msg->USB_COM->data, Msg->USB_COM->receive_length);
-		rt_kprintf("\n\nUSBRec Len = %d\n",Msg->USB_COM->receive_length);
-		Msg->UartTx(Msg->USB_COM->data,Msg->USB_COM->receive_length);
-		rt_kprintf("\n\n");
+		if(Msg->USB_COM->receive_length == SYS_CONFIG_PACK_LEN)//长度正确
+		{
+			Msg->USBTx(Msg->USB_COM->data,4,2);//回复信息
+			if(Msg->USB_COM->data[3]==cal_crc8_table(Msg->USB_COM->data,3))//CRC通过
+			{
+				uint16_t mb_buf = (Msg->USB_COM->data[1]<<8) | (Msg->USB_COM->data[2]);
+				rt_mb_send(Config_mailbox,(rt_ubase_t)mb_buf);
+			}
+		}	
 	}
 }
 
@@ -79,6 +104,14 @@ void USBD_WKUP_IRQHandler(void)
     exti_interrupt_flag_clear(EXTI_18);
 }
 
+
+void USART0_IRQHandler(void)
+{
+	if(Msg->Recieve_IRQ())
+	{
+		rt_sem_release(UART0_RxSem);
+	}
+}
 /*
 	根据发送状态决定压入缓冲或是直接发送
 	直接发送时:
@@ -88,11 +121,11 @@ void USBD_WKUP_IRQHandler(void)
 	压入缓冲时:
 	使用消息队列作为缓冲区
 */
-uint8_t cMSG::UartTx(uint8_t *pdata, uint16_t Length)
+uint8_t cMSG::UartTx(uint8_t *pdata, uint16_t Length, rt_int32_t WaitTime)
 {
 	if(pdata==0){return 1;}
 	/*直接使用DMA发送*/
-	if(rt_mutex_take(UART0_TxMut,RT_WAITING_NO)!=RT_EOK){return 1;}
+	if(rt_mutex_take(UART0_TxMut,WaitTime)!=RT_EOK){return 1;}
 	this->Transmit_DMA(pdata,Length);
 	rt_sem_take(UART0_TxSem,RT_WAITING_FOREVER);
 	rt_mutex_release(UART0_TxMut);
@@ -101,16 +134,25 @@ uint8_t cMSG::UartTx(uint8_t *pdata, uint16_t Length)
 /*
 	在上面函数的基础上，添加一个数据包头
 */
-uint8_t cMSG::UartTx(uint8_t Head, uint8_t *pdata, uint16_t Length)
+uint8_t cMSG::UartTx(uint8_t Head, uint8_t *pdata, uint16_t Length, rt_int32_t WaitTime)
 {
 	if(pdata==0){return 1;}
 	/*直接使用DMA发送*/
-	if(rt_mutex_take(UART0_TxMut,RT_WAITING_NO)!=RT_EOK){return 1;}
+	if(rt_mutex_take(UART0_TxMut,WaitTime)!=RT_EOK){return 1;}
 	usart_data_transmit(USART0,Head);
 	while (!usart_flag_get(USART0, USART_FLAG_TBE)){}
 	this->Transmit_DMA(pdata,Length);
 	rt_sem_take(UART0_TxSem,RT_WAITING_FOREVER);
 	rt_mutex_release(UART0_TxMut);
+	return 0;
+}
+uint8_t cMSG::USBTx(uint8_t *pdata, uint16_t Length, rt_int32_t WaitTime)
+{
+	if(pdata==0){return 1;}
+	/*直接使用DMA发送*/
+	if(rt_mutex_take(USB_TxMut,WaitTime)!=RT_EOK){return 1;}
+	usbd_ep_send(my_usb_dev, CDC_IN_EP, pdata, Length);
+	rt_mutex_release(USB_TxMut);
 	return 0;
 }
 void cMSG::Printf(const char * format, ...)
@@ -121,7 +163,7 @@ void cMSG::Printf(const char * format, ...)
 	va_start(args, format);
 	uint8_t Len = vsnprintf(buf,128,format, args);
 	va_end (args);
-	this->UartTx((uint8_t*)buf,Len);
+	this->UartTx((uint8_t*)buf,Len,RT_WAITING_FOREVER);
 	rt_free(buf);
 }
 
@@ -148,6 +190,6 @@ void rt_hw_console_output(const char *str)
 	#else
 	uint16_t i=0;
 	while(*(str+i) != '\0'){i++;}
-	Msg->UartTx((uint8_t *)str,i);
+	Msg->UartTx((uint8_t *)str,i,RT_WAITING_FOREVER);
 	#endif
 }

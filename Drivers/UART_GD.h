@@ -39,7 +39,7 @@
 
 /********其他参数**********/
 //接收缓冲区长度 也是最大接受长度
-#define RX_BUF_LEN 128
+#define RX_BUF_LEN 32
 //每个Byte的超时时间
 #define UART_TIME_OVER_TIME 500
 /**************************/
