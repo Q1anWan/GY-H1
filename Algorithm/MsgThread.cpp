@@ -6,7 +6,6 @@
 /*程序串口发送控制*/
 cMSG  *Msg;
 
-
 usb_dev *my_usb_dev = RT_NULL;
 /*串口进程控制指针*/
 rt_thread_t UART_thread = RT_NULL;
@@ -26,6 +25,10 @@ rt_mutex_t USB_TxMut = RT_NULL;
 /*USBD接收缓冲区*/
 uint8_t *USBD_rev_buf;
 
+/*CAN进程控制指针*/
+rt_thread_t CAN_thread = RT_NULL;
+/*CAN中断控制信号量*/
+rt_sem_t CAN_Sem = RT_NULL;
 
 extern  rt_thread_t Config_thread;
 extern rt_mailbox_t Config_mailbox;
@@ -112,6 +115,23 @@ void USART0_IRQHandler(void)
 		rt_sem_release(UART0_RxSem);
 	}
 }
+void CANThread(void* parameter)
+{
+	Msg->CAN_RecMsg = new can_receive_message_struct;
+	for(;;)
+	{
+		rt_sem_take(CAN_Sem,RT_WAITING_FOREVER);
+		
+			
+	}
+}
+
+void CAN0_RX1_IRQHandler(void)
+{
+	can_message_receive(CAN0,CAN_FIFO1,Msg->CAN_RecMsg);
+	rt_sem_release(CAN_Sem);
+}
+
 /*
 	根据发送状态决定压入缓冲或是直接发送
 	直接发送时:
@@ -154,6 +174,22 @@ uint8_t cMSG::USBTx(uint8_t *pdata, uint16_t Length, rt_int32_t WaitTime)
 	usbd_ep_send(my_usb_dev, CDC_IN_EP, pdata, Length);
 	rt_mutex_release(USB_TxMut);
 	return 0;
+}
+void cMSG::CANTx(uint16_t CAN_ID, uint8_t* data, uint8_t len)
+{
+	if(data==0){return;}
+	else if(len==0){return;}
+	len = (len>8)?8:len;
+	
+	can_trasnmit_message_struct transmit_message;
+	transmit_message.tx_sfid = CAN_ID;
+    transmit_message.tx_efid = 0x00;
+    transmit_message.tx_ft	 = CAN_FT_DATA;
+    transmit_message.tx_ff	 = CAN_FF_STANDARD;
+    transmit_message.tx_dlen = len;
+	memcpy(transmit_message.tx_data,data,len);
+	
+	can_message_transmit(CAN0, &transmit_message);
 }
 void cMSG::Printf(const char * format, ...)
 {

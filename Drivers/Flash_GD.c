@@ -1,11 +1,11 @@
 #include "Flash_GD.h"
-#define FMC_PAGE_SIZE           ((uint32_t)0x800)
+#define FMC_PAGE_SIZE           ((uint16_t)0x800U)
 
 /*编程保护范围:第127页(256K)*/
 /*0等待Flash最后一页*/
 #define FMC_PROGRAM_START       ((uint32_t)0x803F800U)
 #define FMC_PROGRAM_END        	((uint32_t)0x803FFFFU)
-
+										   
 /*!
     \brief      erase a few number of fmc pages from StartAddr
     \param[in]  StartAddr:First page's address  Pages:numbers of pages
@@ -15,9 +15,9 @@
 uint8_t fmc_erase_pages(uint32_t StartAddr,uint16_t Pages)
 {
     uint32_t EraseCounter;
+
 	/*Make sure flash address is vaild*/
-	if(StartAddr%FMC_PAGE_SIZE != 0){return 1;}
-	else if(StartAddr<FMC_PROGRAM_START){return 1;}
+	if(StartAddr<FMC_PROGRAM_START){return 1;}
 	else if(StartAddr + Pages*FMC_PAGE_SIZE -1 > FMC_PROGRAM_END){return 1;}
     
 	/* unlock the flash program/erase controller */

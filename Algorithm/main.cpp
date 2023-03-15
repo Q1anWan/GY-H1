@@ -18,6 +18,7 @@ uint8_t Test3 = 0;
 
 
 cWS281x LED;
+extern void ConfigRead(void);
 
 static void LEDThread(void* parameter);
 static rt_thread_t LED_thread = RT_NULL;
@@ -42,6 +43,10 @@ extern void USBDThread(void* parameter);
 extern rt_thread_t USBD_thread;
 extern rt_mutex_t USB_TxMut;
 extern rt_sem_t USBD_Sem;
+
+extern void CANThread(void* parameter);
+extern rt_thread_t CAN_thread;
+extern rt_sem_t CAN_Sem;
 
 extern void ConfigThread(void* parameter);
 extern rt_thread_t Config_thread;
@@ -70,44 +75,15 @@ int main(void)
 	rt_thread_create( 					"LED",             	/* 线程名字 */
 										LEDThread,   		/* 线程入口函数 */
 										RT_NULL,            /* 线程入口函数参数 */
-										512,                /* 线程栈大小 */
+										256,                /* 线程栈大小 */
 										16,                  /* 线程的优先级 */
 										20);                /* 线程时间片 */	
-	
-	Test1_thread =                          				/* 线程控制块指针 */
-	rt_thread_create( 					"Test1",            /* 线程名字 */
-										Test1Thread,   		/* 线程入口函数 */
-										RT_NULL,            /* 线程入口函数参数 */
-										512,                /* 线程栈大小 */
-										3,                  /* 线程的优先级 */
-										5);                /* 线程时间片 */
-	Test2_thread =                          				/* 线程控制块指针 */
-	rt_thread_create( 					"Test2",            /* 线程名字 */
-										Test2Thread,   		/* 线程入口函数 */
-										RT_NULL,            /* 线程入口函数参数 */
-										768,                /* 线程栈大小 */
-										5,                  /* 线程的优先级 */
-										5);                /* 线程时间片 */
-	Test3_thread =                          				/* 线程控制块指针 */
-	rt_thread_create( 					"Test3",            /* 线程名字 */
-										Test3Thread,   		/* 线程入口函数 */
-										RT_NULL,            /* 线程入口函数参数 */
-										128,                /* 线程栈大小 */
-										4,                  /* 线程的优先级 */
-										5);                /* 线程时间片 */
-	Test4_thread =                          				/* 线程控制块指针 */
-	rt_thread_create( 					"Test4",            /* 线程名字 */
-										Test4Thread,   		/* 线程入口函数 */
-										RT_NULL,            /* 线程入口函数参数 */
-										128,                /* 线程栈大小 */
-										5,                  /* 线程的优先级 */
-										5);                /* 线程时间片 */
 	
 	UART_thread =                          					/* 线程控制块指针 */
 	rt_thread_create( 					"UART",             /* 线程名字 */
 										UARTThread,   		/* 线程入口函数 */
 										RT_NULL,            /* 线程入口函数参数 */
-										512,                /* 线程栈大小 */
+										768,                /* 线程栈大小 */
 										2,                  /* 线程的优先级 */
 										5);                 /* 线程时间片 */
 	
@@ -124,24 +100,7 @@ int main(void)
 	rt_sem_create(						"UART0_RxSem",		/* 信号量的名称 */
 										1,					/* 初始化的值 */
 										RT_IPC_FLAG_FIFO);	/* 信号量的标志位 */
-										
-	USBD_thread =                          					/* 线程控制块指针 */
-	rt_thread_create( 					"USBD",             /* 线程名字 */
-										USBDThread,   		/* 线程入口函数 */
-										RT_NULL,            /* 线程入口函数参数 */
-										512,               /* 线程栈大小 */
-										2,                  /* 线程的优先级 */
-										5);                 /* 线程时间片 */
-
-	USBD_Sem	=
-	rt_sem_create(						"USBD_Sem",			/* 信号量的名称 */
-										0,					/* 初始化的值 */
-										RT_IPC_FLAG_FIFO);	/* 信号量的标志位 */
-
-	USB_TxMut =
-	rt_mutex_create(					"USB_TxMut",		/* 互斥锁的名称 */
-										RT_IPC_FLAG_FIFO);	/* 互斥锁的标志位 */
-										
+														
 	Config_thread =                          				/* 线程控制块指针 */
 	rt_thread_create( 					"Config",           /* 线程名字 */
 										ConfigThread,   	/* 线程入口函数 */
@@ -188,27 +147,93 @@ int main(void)
 	IMU_INT2Sem	=
 	rt_sem_create(						"IMU_INT2Sem",		/* 信号量的名称 */
 										0,					/* 初始化的值 */
-										RT_IPC_FLAG_FIFO);	/* 信号量的标志位 */										
+										RT_IPC_FLAG_FIFO);	/* 信号量的标志位 */								
+	
+	Test1_thread =                          				/* 线程控制块指针 */
+	rt_thread_create( 					"Test1",            /* 线程名字 */
+										Test1Thread,   		/* 线程入口函数 */
+										RT_NULL,            /* 线程入口函数参数 */
+										512,                /* 线程栈大小 */
+										3,                  /* 线程的优先级 */
+										5);                /* 线程时间片 */
+	Test2_thread =                          				/* 线程控制块指针 */
+	rt_thread_create( 					"Test2",            /* 线程名字 */
+										Test2Thread,   		/* 线程入口函数 */
+										RT_NULL,            /* 线程入口函数参数 */
+										768,                /* 线程栈大小 */
+										5,                  /* 线程的优先级 */
+										5);                /* 线程时间片 */
+	Test3_thread =                          				/* 线程控制块指针 */
+	rt_thread_create( 					"Test3",            /* 线程名字 */
+										Test3Thread,   		/* 线程入口函数 */
+										RT_NULL,            /* 线程入口函数参数 */
+										128,                /* 线程栈大小 */
+										4,                  /* 线程的优先级 */
+										5);                /* 线程时间片 */
+	Test4_thread =                          				/* 线程控制块指针 */
+	rt_thread_create( 					"Test4",            /* 线程名字 */
+										Test4Thread,   		/* 线程入口函数 */
+										RT_NULL,            /* 线程入口函数参数 */
+										128,                /* 线程栈大小 */
+										5,                  /* 线程的优先级 */
+										5);                /* 线程时间片 */
+										
 	/* 启动线程，开启调度 */
 	rt_thread_startup(UART_thread);
 	#ifdef qwDbug									
-	rt_kprintf("\n\nUART_thread  = %d\n",UART_thread);rt_thread_delay(2);	
-	rt_kprintf("LED_thread   = %d\n",LED_thread);rt_thread_delay(2);
-	rt_kprintf("Test1_thread = %d\n",Test1_thread);rt_thread_delay(2);
-	rt_kprintf("Test2_thread = %d\n",Test2_thread);rt_thread_delay(2);	
-	rt_kprintf("Test3_thread = %d\n",Test3_thread);rt_thread_delay(2);
-	rt_kprintf("Test4_thread = %d\n",Test4_thread);rt_thread_delay(2);				
+	rt_kprintf("\n\nUART_thread  = %d\n",UART_thread);rt_thread_delay(2);				
 	#endif
+	rt_thread_startup(IMU_thread);
+	rt_thread_startup(IMUHeat_thread);
+	rt_thread_startup(Config_thread);
+	ConfigRead();
+	
+	if(qCtr->OTSel==1)//启动CAN
+	{
+		CAN_thread =                          					/* 线程控制块指针 */
+		rt_thread_create( 					"CAN",            	/* 线程名字 */
+											CANThread,   		/* 线程入口函数 */
+											RT_NULL,            /* 线程入口函数参数 */
+											256,              	/* 线程栈大小 */
+											2,                  /* 线程的优先级 */
+											5);                 /* 线程时间片 */
+
+		CAN_Sem	=
+		rt_sem_create(						"CAN_Sem",			/* 信号量的名称 */
+											0,					/* 初始化的值 */
+											RT_IPC_FLAG_FIFO);	/* 信号量的标志位 */
+		rt_thread_startup(CAN_thread);
+		#ifdef qwDbug									
+		rt_kprintf("\nCAN Enable\n");				
+		#endif
+	}
+	else//启动USB
+	{	
+		USBD_thread =                          					/* 线程控制块指针 */
+		rt_thread_create( 					"USBD",             /* 线程名字 */
+											USBDThread,   		/* 线程入口函数 */
+											RT_NULL,            /* 线程入口函数参数 */
+											512,              	/* 线程栈大小 */
+											2,                  /* 线程的优先级 */
+											5);                 /* 线程时间片 */
+
+		USBD_Sem	=
+		rt_sem_create(						"USBD_Sem",			/* 信号量的名称 */
+											0,					/* 初始化的值 */
+											RT_IPC_FLAG_FIFO);	/* 信号量的标志位 */
+
+		USB_TxMut =
+		rt_mutex_create(					"USB_TxMut",		/* 互斥锁的名称 */
+											RT_IPC_FLAG_FIFO);	/* 互斥锁的标志位 */
+		rt_thread_startup(USBD_thread);
+		#ifdef qwDbug									
+		rt_kprintf("\nUSB Enable\n");				
+		#endif
+	}
+	
 	rt_thread_startup(LED_thread);					
 	rt_thread_startup(Test1_thread);
-	rt_thread_startup(IMU_thread);
-//	rt_thread_startup(IMUSlaver_thread);
-	rt_thread_startup(IMUHeat_thread);
 	rt_thread_startup(Test2_thread);
-//	rt_thread_startup(Test3_thread);
-//	rt_thread_startup(Test4_thread);
-	rt_thread_startup(USBD_thread);
-	rt_thread_startup(Config_thread);
 	return 0;
 }
 

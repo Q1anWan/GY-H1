@@ -30,7 +30,6 @@ extern void SystemCoreClockUpdate(void);
 // frequency supplied to the SysTick timer and the processor 
 // core clock.
 extern uint32_t SystemCoreClock;
-
 static void CLOCK_Init(void);
 static void USB_IRCCLK(void);
 static void GPIO_Init(void);
@@ -39,7 +38,10 @@ static void UART_Init(void);
 static void Timer_Init(void);
 static void DMA_Init(void);
 static void NVIC_Init(void);
-static void Flash_Check(void);
+static void UserConfigApply(void);
+
+static void USB_Init(void);
+static void CAN_Init(void);
 
 static uint32_t _SysTick_Config(rt_uint32_t ticks)
 {
@@ -90,14 +92,15 @@ void rt_hw_board_init()
     rt_system_heap_init(rt_heap_begin_get(), rt_heap_end_get());
 #endif
 	
-	Flash_Check();
 	CLOCK_Init();
 	NVIC_Init();
 	GPIO_Init();
 	SPI_Init();
 	UART_Init();
-	Timer_Init();
 	DMA_Init();
+	Timer_Init();
+	/*读取Flash数据，并选择启动USB-C或者CAN*/
+	UserConfigApply();
 }
 
 void SysTick_Handler(void)
@@ -139,21 +142,15 @@ static void CLOCK_Init(void)
 	rcu_periph_clock_enable(RCU_USART0);
 	
 	rcu_periph_clock_enable(RCU_TIMER2);
-	
-	//rcu_periph_clock_enable(RCU_CAN0);
+}
+static void GPIO_Init(void)
+{
+	/*USB引脚电平重置*/
 	gpio_init(GPIOA, GPIO_MODE_OUT_PP, GPIO_OSPEED_MAX, GPIO_PIN_12);//D+
 	gpio_bit_reset(GPIOA,GPIO_PIN_12);
 	rt_hw_us_delay(999);
 	gpio_bit_set(GPIOA,GPIO_PIN_12);
 	gpio_deinit(GPIOA);
-	USB_IRCCLK();
-	rcu_usb_clock_config(RCU_CKUSB_CKPLL_DIV1);
-	rcu_periph_clock_enable(RCU_USBD);
-	
-
-}
-static void GPIO_Init(void)
-{
 	/*IMU*/
 	/*SPI0*/
 	gpio_init(GPIOA, GPIO_MODE_IPU, 		GPIO_OSPEED_MAX, GPIO_PIN_3);//INT2
@@ -186,9 +183,6 @@ static void GPIO_Init(void)
 	/*LED*/
 	/*SPI2*/
 	gpio_init(GPIOB, GPIO_MODE_AF_PP, GPIO_OSPEED_MAX, GPIO_PIN_5);
-	/*CAN*/
-	gpio_init(GPIOB, GPIO_MODE_IPU, GPIO_OSPEED_MAX, GPIO_PIN_8);//RX
-	gpio_init(GPIOB, GPIO_MODE_AF_PP, GPIO_OSPEED_MAX, GPIO_PIN_9);//TX
 }
 static void DMA_Init(void)
 {
@@ -313,7 +307,118 @@ static void NVIC_Init(void)
 
     nvic_irq_enable(USBD_LP_CAN0_RX0_IRQn, 1U, 2U);
     nvic_irq_enable(USBD_HP_CAN0_TX_IRQn, 1U, 2U);
+	
+	nvic_irq_enable(CAN0_RX1_IRQn,1,1);//CAN RX
 }
+
+static void UserConfigApply(void)
+{
+	rcu_periph_clock_enable(RCU_CRC);
+	uint32_t buf[5]={0};
+//	fmc_erase_pages(FLASH_USERDATA_ADDRESS,1);
+//	fmc_erase_pages(FLASH_USERDATA_ADDRESS,1);
+	fmc_read_u32(FLASH_USERDATA_ADDRESS,buf,5);
+
+	crc_data_register_reset();
+	if(buf[4]!=crc_block_data_calculate(buf,4))
+	{
+		//存储信息初始化失败，重构
+		buf[0]=(uint32_t)0x000002FFU;
+		//IMU如果全为0xFFFFFFFF 重构
+		for(uint8_t i=1;i<4;i++){
+		if(buf[i]==(uint32_t)0xFFFFFFFFU)
+		{buf[i]=0;}}
+
+		rt_kprintf("Rebuild User Config");
+		crc_data_register_reset();
+		buf[4]=crc_block_data_calculate(buf,4);
+		fmc_erase_pages(FLASH_USERDATA_ADDRESS,1);
+		fmc_erase_pages(FLASH_USERDATA_ADDRESS,1);
+		fmc_program(FLASH_USERDATA_ADDRESS,buf,5);
+		if(fmc_program_check(FLASH_USERDATA_ADDRESS,5,buf))
+		{
+			rt_kprintf("FLASH Rebuld Fault!!!");
+			HardFault_Handler();
+		}
+		else
+		{	
+			#ifdef qwDbug
+			while(1);
+			#endif
+			NVIC_SystemReset();while(1);
+		}
+	}
+	else	
+	{
+		if(buf[0]>>24==1)
+		{
+			CAN_Init();
+		}
+		else
+		{
+			USB_Init();
+		}
+		
+	}
+}
+static void USB_Init(void)
+{
+	USB_IRCCLK();
+	rcu_usb_clock_config(RCU_CKUSB_CKPLL_DIV1);
+	rcu_periph_clock_enable(RCU_USBD);
+}
+static void CAN_Init(void)
+{
+	can_parameter_struct            can_parameter;
+    can_filter_parameter_struct     can_filter;
+	
+	/*时钟配置*/
+	rcu_periph_clock_enable(RCU_CAN0);
+	/*CAN*/
+	gpio_init(GPIOB, GPIO_MODE_IPU, GPIO_OSPEED_MAX, GPIO_PIN_8);//RX
+	gpio_init(GPIOB, GPIO_MODE_AF_PP, GPIO_OSPEED_MAX, GPIO_PIN_9);//TX
+
+    can_struct_para_init(CAN_INIT_STRUCT, &can_parameter);
+    can_struct_para_init(CAN_FILTER_STRUCT, &can_filter);    
+    /* initialize CAN register */
+    can_deinit(CAN0);
+    
+    /* initialize CAN */
+    can_parameter.time_triggered = DISABLE;
+    can_parameter.auto_bus_off_recovery = ENABLE;
+    can_parameter.auto_wake_up = DISABLE;
+    can_parameter.auto_retrans = DISABLE;
+    can_parameter.rec_fifo_overwrite = DISABLE;
+    can_parameter.trans_fifo_order = DISABLE;
+    can_parameter.working_mode = CAN_NORMAL_MODE;
+    can_parameter.resync_jump_width = CAN_BT_SJW_1TQ;
+    can_parameter.time_segment_1 = CAN_BT_BS1_6TQ;
+    can_parameter.time_segment_2 = CAN_BT_BS2_5TQ;
+    /* baudrate 1Mbps */
+    can_parameter.prescaler = 12;
+    can_init(CAN0, &can_parameter);
+    	
+	/* initialize filter */
+    /* CAN0 filter number */
+    can_filter.filter_number = 0;
+
+    /* initialize filter */    
+    can_filter.filter_mode = CAN_FILTERMODE_MASK;
+    can_filter.filter_bits = CAN_FILTERBITS_32BIT;
+	/*They shall not pass*/
+	/*全部滤除*/
+	can_filter.filter_list_high = 0xFFFF;
+    can_filter.filter_list_low = 0xFFFF;
+    can_filter.filter_mask_high = 0x0000;
+    can_filter.filter_mask_low = 0x0000;  
+    can_filter.filter_fifo_number = CAN_FIFO1;
+    can_filter.filter_enable = ENABLE;
+    can_filter_init(&can_filter);
+	
+	can_interrupt_enable(CAN0, CAN_INT_RFNE1);
+		
+}
+
 static void USB_IRCCLK(void)
 {
 	uint32_t timeout = 0U;
@@ -331,27 +436,4 @@ static void USB_IRCCLK(void)
 	
 	/*设置USB输入时钟*/
     rcu_ck48m_clock_config(RCU_CK48MSRC_IRC48M);
-}
-static void Flash_Check(void)
-{
-	rcu_periph_clock_enable(RCU_CRC);
-	
-	uint32_t buf[5];
-	fmc_read_u32(FLASH_USERDATA_ADDRESS,buf,5);
-
-	crc_data_register_reset();
-	if(buf[4]!=crc_block_data_calculate(buf,4))
-	{
-		fmc_erase_pages(FLASH_USERDATA_ADDRESS,1);
-	
-		buf[0]=0x01;
-		buf[1]=0x00;
-		buf[2]=0x00;
-		buf[3]=0x00;
-		crc_data_register_reset();
-		buf[4]=crc_block_data_calculate(buf,4);
-	
-		fmc_program(FLASH_USERDATA_ADDRESS,buf,5);
-		fmc_program_check(FLASH_USERDATA_ADDRESS,5,buf);
-	}
 }
