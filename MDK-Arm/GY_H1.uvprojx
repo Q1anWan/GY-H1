@@ -560,6 +560,11 @@
               <FileType>1</FileType>
               <FilePath>..\Drivers\CRC8.c</FilePath>
             </File>
+            <File>
+              <FileName>Data_Exchange.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Drivers\Data_Exchange.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

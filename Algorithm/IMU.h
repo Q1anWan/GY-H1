@@ -8,8 +8,13 @@ class cIMU :public cICM42688,public PID_Inc_C
 {
 	public:
 	float	Q[4]={1,0,0,0};
+	
 	int16_t GyroCal[3]={0};
 	int16_t AccelCal[3]={0};
+
+	int16_t GyroCorrected[3]={0};
+	int16_t AccelCorrected[3]={0};
+	
 	void PID_Init(void)
 	{
 		this->Ref = 41.0f;

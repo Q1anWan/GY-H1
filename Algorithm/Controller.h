@@ -13,10 +13,10 @@
 class cCTR
 {
 	public:
-	uint8_t		OTSel = 0x00;
-	uint16_t	CAN_ID = 0x300;
-	uint8_t 	ODR = 0x03;
-	uint8_t		OutPutMode = 0x00;
+	uint8_t		OTSel = 0x00;		//输出接口
+	uint16_t	CAN_ID = 0x300;		//CAN_ID
+	uint8_t 	ODR = 0x03;			//输出速率
+	uint8_t		OutPutMode = 0x00;	//对外输出模式
 	
 	uint8_t		EnableOutput = 1;
 	uint8_t		ConfigFlag = 0;

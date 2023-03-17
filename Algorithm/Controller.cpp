@@ -2,6 +2,8 @@
 #include "Flash_GD.h"
 #include "MsgThread.h"
 #include "IMU.h"
+#include "Data_Exchange.h"
+#include "CRC8.h"
 #include "arm_math.h"
 
 /*控制指针*/
@@ -166,6 +168,7 @@ void ConfigThread(void* parameter)
 */
 void DataOutputThread(void* parameter)
 {
+	rt_thread_delay(1500);
 	const uint16_t DelayTime = 1 << qCtr->ODR;
 	rt_tick_t ticker;
 	for(;;)
@@ -173,11 +176,113 @@ void DataOutputThread(void* parameter)
 		if(qCtr->EnableOutput==0)
 		{rt_thread_suspend(DataOutput_thread);rt_schedule();}
 		ticker = rt_tick_get();
-		uint8_t a[8]={1,2,3};
+
 		if(qCtr->OTSel==1)
-		{Msg->CANTx(qCtr->CAN_ID,a,8);}
-		else
-		{Msg->USBTx(a,3,1);}
+		{
+			uint8_t TxBuf[8]={0};
+			switch(qCtr->OutPutMode)
+			{
+				case 0x00://四元数输出
+					Transform.Float_To_U8(IMU->Q,TxBuf,2);
+					Msg->CANTx(qCtr->CAN_ID,TxBuf,8);
+					Transform.Float_To_U8(IMU->Q+2,TxBuf,2);
+					Msg->CANTx(qCtr->CAN_ID+1,TxBuf,8);
+				break;
+				case 0x01://原始6轴数据输出
+					TxBuf[0]=IMU->Gyro[0]>>8;
+					TxBuf[1]=IMU->Gyro[0]&0xFF;
+					TxBuf[2]=IMU->Gyro[1]>>8;
+					TxBuf[3]=IMU->Gyro[1]&0xFF;
+					TxBuf[4]=IMU->Gyro[2]>>8;
+					TxBuf[5]=IMU->Gyro[2]&0xFF;
+					TxBuf[6]=0x03;
+					Msg->CANTx(qCtr->CAN_ID,TxBuf,8);
+					TxBuf[0]=IMU->Accel[0]>>8;
+					TxBuf[1]=IMU->Accel[0]&0xFF;
+					TxBuf[2]=IMU->Accel[1]>>8;
+					TxBuf[3]=IMU->Accel[1]&0xFF;
+					TxBuf[4]=IMU->Accel[2]>>8;
+					TxBuf[5]=IMU->Accel[2]&0xFF;
+					TxBuf[6]=0x03;
+					Msg->CANTx(qCtr->CAN_ID,TxBuf,8);
+				break;
+				case 0x02://校正后6轴数据输出
+					TxBuf[0]=IMU->GyroCorrected[0]>>8;
+					TxBuf[1]=IMU->GyroCorrected[0]&0xFF;
+					TxBuf[2]=IMU->GyroCorrected[1]>>8;
+					TxBuf[3]=IMU->GyroCorrected[1]&0xFF;
+					TxBuf[4]=IMU->GyroCorrected[2]>>8;
+					TxBuf[5]=IMU->GyroCorrected[2]&0xFF;
+					TxBuf[6]=0x04;
+					Msg->CANTx(qCtr->CAN_ID,TxBuf,8);
+					TxBuf[0]=IMU->AccelCorrected[0]>>8;
+					TxBuf[1]=IMU->AccelCorrected[0]&0xFF;
+					TxBuf[2]=IMU->AccelCorrected[1]>>8;
+					TxBuf[3]=IMU->AccelCorrected[1]&0xFF;
+					TxBuf[4]=IMU->AccelCorrected[2]>>8;
+					TxBuf[5]=IMU->AccelCorrected[2]&0xFF;
+					TxBuf[6]=0x04;
+					Msg->CANTx(qCtr->CAN_ID,TxBuf,8);
+				break;
+			}
+		}
+
+		uint8_t TxBuf[18]={0};
+		switch(qCtr->OutPutMode)
+		{
+			case 0x00://四元数输出
+				TxBuf[0]=0x40;
+				Transform.Float_To_U8(IMU->Q,TxBuf+1,4);
+				TxBuf[17] = cal_crc8_table(TxBuf,17);
+				if(!qCtr->OTSel){
+				Msg->USBTx(TxBuf,18,RT_WAITING_NO);}
+				#ifndef qwDbug//不设置调试模式UART才发
+				Msg->UartTx(TxBuf,18,RT_WAITING_NO);
+				#endif
+			break;
+			case 0x01://原始6轴数据输出
+				TxBuf[0]=0x41;
+				TxBuf[1]=IMU->Gyro[0]>>8;
+				TxBuf[2]=IMU->Gyro[0]&0xFF;
+				TxBuf[3]=IMU->Gyro[1]>>8;
+				TxBuf[4]=IMU->Gyro[1]&0xFF;
+				TxBuf[5]=IMU->Gyro[2]>>8;
+				TxBuf[6]=IMU->Gyro[2]&0xFF;
+				TxBuf[7]=IMU->Accel[0]>>8;
+				TxBuf[8]=IMU->Accel[0]&0xFF;
+				TxBuf[9]=IMU->Accel[1]>>8;
+				TxBuf[10]=IMU->Accel[1]&0xFF;
+				TxBuf[11]=IMU->Accel[2]>>8;
+				TxBuf[12]=IMU->Accel[2]&0xFF;
+				TxBuf[13]=cal_crc8_table(TxBuf,13);
+				if(!qCtr->OTSel){
+				Msg->USBTx(TxBuf,14,RT_WAITING_NO);}
+				#ifndef qwDbug//不设置调试模式UART才发
+				Msg->UartTx(TxBuf,14,RT_WAITING_NO);
+				#endif
+			break;
+			case 0x02://校正后6轴数据输出
+				TxBuf[0]=0x42;
+				TxBuf[1]=IMU->GyroCorrected[0]>>8;
+				TxBuf[2]=IMU->GyroCorrected[0]&0xFF;
+				TxBuf[3]=IMU->GyroCorrected[1]>>8;
+				TxBuf[4]=IMU->GyroCorrected[1]&0xFF;
+				TxBuf[5]=IMU->GyroCorrected[2]>>8;
+				TxBuf[6]=IMU->GyroCorrected[2]&0xFF;
+				TxBuf[7]=IMU->AccelCorrected[0]>>8;
+				TxBuf[8]=IMU->AccelCorrected[0]&0xFF;
+				TxBuf[9]=IMU->AccelCorrected[1]>>8;
+				TxBuf[10]=IMU->AccelCorrected[1]&0xFF;
+				TxBuf[11]=IMU->AccelCorrected[2]>>8;
+				TxBuf[12]=IMU->AccelCorrected[2]&0xFF;
+				TxBuf[13]=cal_crc8_table(TxBuf,13);
+				if(!qCtr->OTSel){
+				Msg->USBTx(TxBuf,14,RT_WAITING_NO);}
+				#ifndef qwDbug//不设置调试模式UART才发
+				Msg->UartTx(TxBuf,14,RT_WAITING_NO);
+				#endif
+			break;
+		}
 		
 		rt_thread_delay_until(&ticker,DelayTime);
 	}
