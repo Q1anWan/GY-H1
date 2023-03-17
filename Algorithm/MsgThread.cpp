@@ -53,9 +53,10 @@ void UARTThread(void* parameter)
 		
 		if(Msg->cUART::Recieve_Length == SYS_CONFIG_PACK_LEN)//长度正确
 		{
-			Msg->UartTx(Msg->UartRecBuf,4,2);//回复信息
+			
 			if(Msg->UartRecBuf[3]==cal_crc8_table(Msg->UartRecBuf,3))//CRC通过
 			{
+				Msg->UartTx(Msg->UartRecBuf,4,2);//回复信息
 				uint16_t mb_buf = (Msg->UartRecBuf[1]<<8) | (Msg->UartRecBuf[2]);
 				rt_mb_send(Config_mailbox,(rt_ubase_t)mb_buf);
 			}
@@ -86,9 +87,8 @@ void USBDThread(void* parameter)
 		Msg->USB_COM = (usb_cdc_handler *)my_usb_dev->class_data[CDC_COM_INTERFACE];
 		if(Msg->USB_COM->receive_length == SYS_CONFIG_PACK_LEN)//长度正确
 		{
-			Msg->USBTx(Msg->USB_COM->data,4,2);//回复信息
 			if(Msg->USB_COM->data[3]==cal_crc8_table(Msg->USB_COM->data,3))//CRC通过
-			{
+			{	Msg->USBTx(Msg->USB_COM->data,4,2);//回复信息
 				uint16_t mb_buf = (Msg->USB_COM->data[1]<<8) | (Msg->USB_COM->data[2]);
 				rt_mb_send(Config_mailbox,(rt_ubase_t)mb_buf);
 			}
@@ -121,8 +121,6 @@ void CANThread(void* parameter)
 	for(;;)
 	{
 		rt_sem_take(CAN_Sem,RT_WAITING_FOREVER);
-		
-			
 	}
 }
 
@@ -199,7 +197,7 @@ void cMSG::Printf(const char * format, ...)
 	va_start(args, format);
 	uint8_t Len = vsnprintf(buf,128,format, args);
 	va_end (args);
-	this->UartTx((uint8_t*)buf,Len,RT_WAITING_FOREVER);
+	this->UartTx((uint8_t*)buf,Len,5);
 	rt_free(buf);
 }
 

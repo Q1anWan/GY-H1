@@ -316,14 +316,14 @@ static void UserConfigApply(void)
 	rcu_periph_clock_enable(RCU_CRC);
 	uint32_t buf[5]={0};
 //	fmc_erase_pages(FLASH_USERDATA_ADDRESS,1);
-//	fmc_erase_pages(FLASH_USERDATA_ADDRESS,1);
+
 	fmc_read_u32(FLASH_USERDATA_ADDRESS,buf,5);
 
 	crc_data_register_reset();
 	if(buf[4]!=crc_block_data_calculate(buf,4))
 	{
 		//存储信息初始化失败，重构
-		buf[0]=(uint32_t)0x000002FFU;
+		buf[0]=(uint32_t)0x00000200U;
 		//IMU如果全为0xFFFFFFFF 重构
 		for(uint8_t i=1;i<4;i++){
 		if(buf[i]==(uint32_t)0xFFFFFFFFU)
@@ -332,7 +332,7 @@ static void UserConfigApply(void)
 		rt_kprintf("Rebuild User Config");
 		crc_data_register_reset();
 		buf[4]=crc_block_data_calculate(buf,4);
-		fmc_erase_pages(FLASH_USERDATA_ADDRESS,1);
+
 		fmc_erase_pages(FLASH_USERDATA_ADDRESS,1);
 		fmc_program(FLASH_USERDATA_ADDRESS,buf,5);
 		if(fmc_program_check(FLASH_USERDATA_ADDRESS,5,buf))
@@ -350,7 +350,7 @@ static void UserConfigApply(void)
 	}
 	else	
 	{
-		if(buf[0]>>24==1)
+		if(buf[0]&0xFF)
 		{
 			CAN_Init();
 		}
@@ -374,10 +374,12 @@ static void CAN_Init(void)
 	
 	/*时钟配置*/
 	rcu_periph_clock_enable(RCU_CAN0);
+
 	/*CAN*/
 	gpio_init(GPIOB, GPIO_MODE_IPU, GPIO_OSPEED_MAX, GPIO_PIN_8);//RX
 	gpio_init(GPIOB, GPIO_MODE_AF_PP, GPIO_OSPEED_MAX, GPIO_PIN_9);//TX
-
+	gpio_pin_remap_config(GPIO_CAN_PARTIAL_REMAP,ENABLE);
+	
     can_struct_para_init(CAN_INIT_STRUCT, &can_parameter);
     can_struct_para_init(CAN_FILTER_STRUCT, &can_filter);    
     /* initialize CAN register */

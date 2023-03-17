@@ -52,6 +52,8 @@ extern void ConfigThread(void* parameter);
 extern rt_thread_t Config_thread;
 extern rt_mailbox_t Config_mailbox;
 
+extern void DataOutputThread(void* parameter);
+extern rt_thread_t DataOutput_thread;
 
 extern void IMUThread(void* parameter);
 extern void IMU2Thread(void* parameter);
@@ -84,7 +86,7 @@ int main(void)
 										UARTThread,   		/* 线程入口函数 */
 										RT_NULL,            /* 线程入口函数参数 */
 										768,                /* 线程栈大小 */
-										2,                  /* 线程的优先级 */
+										3,                  /* 线程的优先级 */
 										5);                 /* 线程时间片 */
 	
 	UART0_TxMut =
@@ -121,7 +123,7 @@ int main(void)
 										RT_NULL,            /* 线程入口函数参数 */
 										512,                /* 线程栈大小 */
 										1,                  /* 线程的优先级 */
-										10);                 /* 线程时间片 */	
+										10);                /* 线程时间片 */	
 
 	IMUSlaver_thread =                          			/* 线程控制块指针 */
 	rt_thread_create( 					"IMUSlaver",        /* 线程名字 */
@@ -131,12 +133,12 @@ int main(void)
 										1,                  /* 线程的优先级 */
 										1);                 /* 线程时间片 */
 										
-	IMUHeat_thread =                          			/* 线程控制块指针 */
-	rt_thread_create( 					"IMUHeat",        /* 线程名字 */
-										IMUHeatThread,   		/* 线程入口函数 */
+	IMUHeat_thread =                          				/* 线程控制块指针 */
+	rt_thread_create( 					"IMUHeat",        	/* 线程名字 */
+										IMUHeatThread,   	/* 线程入口函数 */
 										RT_NULL,            /* 线程入口函数参数 */
 										364,                /* 线程栈大小 */
-										5,                  /* 线程的优先级 */
+										4,                  /* 线程的优先级 */
 										1);                 /* 线程时间片 */
 										
 	IMU_INT1Sem	=
@@ -149,34 +151,45 @@ int main(void)
 										0,					/* 初始化的值 */
 										RT_IPC_FLAG_FIFO);	/* 信号量的标志位 */								
 	
+	DataOutput_thread =                          			/* 线程控制块指针 */
+	rt_thread_create( 					"DataOuput",      	/* 线程名字 */
+										DataOutputThread,   /* 线程入口函数 */
+										RT_NULL,            /* 线程入口函数参数 */
+										768,                /* 线程栈大小 */
+										2,                  /* 线程的优先级 */
+										1);                 /* 线程时间片 */
+	
 	Test1_thread =                          				/* 线程控制块指针 */
 	rt_thread_create( 					"Test1",            /* 线程名字 */
 										Test1Thread,   		/* 线程入口函数 */
 										RT_NULL,            /* 线程入口函数参数 */
 										512,                /* 线程栈大小 */
-										3,                  /* 线程的优先级 */
-										5);                /* 线程时间片 */
+										5,                  /* 线程的优先级 */
+										5);             	/* 线程时间片 */
+	
 	Test2_thread =                          				/* 线程控制块指针 */
 	rt_thread_create( 					"Test2",            /* 线程名字 */
 										Test2Thread,   		/* 线程入口函数 */
 										RT_NULL,            /* 线程入口函数参数 */
 										768,                /* 线程栈大小 */
 										5,                  /* 线程的优先级 */
-										5);                /* 线程时间片 */
+										5);            		/* 线程时间片 */
+	
 	Test3_thread =                          				/* 线程控制块指针 */
 	rt_thread_create( 					"Test3",            /* 线程名字 */
 										Test3Thread,   		/* 线程入口函数 */
 										RT_NULL,            /* 线程入口函数参数 */
 										128,                /* 线程栈大小 */
-										4,                  /* 线程的优先级 */
-										5);                /* 线程时间片 */
+										5,                  /* 线程的优先级 */
+										5);               	/* 线程时间片 */
+	
 	Test4_thread =                          				/* 线程控制块指针 */
 	rt_thread_create( 					"Test4",            /* 线程名字 */
 										Test4Thread,   		/* 线程入口函数 */
 										RT_NULL,            /* 线程入口函数参数 */
 										128,                /* 线程栈大小 */
 										5,                  /* 线程的优先级 */
-										5);                /* 线程时间片 */
+										5);                	/* 线程时间片 */
 										
 	/* 启动线程，开启调度 */
 	rt_thread_startup(UART_thread);
@@ -186,6 +199,7 @@ int main(void)
 	rt_thread_startup(IMU_thread);
 	rt_thread_startup(IMUHeat_thread);
 	rt_thread_startup(Config_thread);
+	rt_thread_delay(5);
 	ConfigRead();
 	
 	if(qCtr->OTSel==1)//启动CAN
@@ -195,7 +209,7 @@ int main(void)
 											CANThread,   		/* 线程入口函数 */
 											RT_NULL,            /* 线程入口函数参数 */
 											256,              	/* 线程栈大小 */
-											2,                  /* 线程的优先级 */
+											3,                  /* 线程的优先级 */
 											5);                 /* 线程时间片 */
 
 		CAN_Sem	=
@@ -214,7 +228,7 @@ int main(void)
 											USBDThread,   		/* 线程入口函数 */
 											RT_NULL,            /* 线程入口函数参数 */
 											512,              	/* 线程栈大小 */
-											2,                  /* 线程的优先级 */
+											3,                  /* 线程的优先级 */
 											5);                 /* 线程时间片 */
 
 		USBD_Sem	=
@@ -232,6 +246,7 @@ int main(void)
 	}
 	
 	rt_thread_startup(LED_thread);					
+	rt_thread_startup(DataOutput_thread);
 	rt_thread_startup(Test1_thread);
 	rt_thread_startup(Test2_thread);
 	return 0;
@@ -297,8 +312,9 @@ static void Test2Thread(void* parameter)
 
 	for(;;)
 	{	
-		rt_kprintf("GYRO:  %d %d %d\n",IMU->Gyro[0],IMU->Gyro[1],IMU->Gyro[2]);
-		rt_kprintf("Accel: %d %d %d\n",IMU->Accel[0],IMU->Accel[1],IMU->Accel[2]);rt_thread_delay(1);
+		
+		Msg->Printf("GYRO:  %d %d %d\n",IMU->Gyro[0],IMU->Gyro[1],IMU->Gyro[2]);rt_thread_delay(1);
+		Msg->Printf("Accel: %d %d %d\n",IMU->Accel[0],IMU->Accel[1],IMU->Accel[2]);rt_thread_delay(1);
 		Msg->Printf("Tem: %f\n\n",IMU->Temperature);rt_thread_delay(1);
 		rt_thread_delay(997);
 	}

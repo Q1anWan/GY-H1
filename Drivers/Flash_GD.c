@@ -21,8 +21,8 @@ uint8_t fmc_erase_pages(uint32_t StartAddr,uint16_t Pages)
 	else if(StartAddr + Pages*FMC_PAGE_SIZE -1 > FMC_PROGRAM_END){return 1;}
     
 	/* unlock the flash program/erase controller */
-    fmc_unlock();
-
+	fmc_unlock();
+	
     /* clear all pending flags */
     fmc_flag_clear(FMC_FLAG_BANK0_END);
     fmc_flag_clear(FMC_FLAG_BANK0_WPERR);
@@ -31,13 +31,14 @@ uint8_t fmc_erase_pages(uint32_t StartAddr,uint16_t Pages)
     /* erase the flash pages */
     for(EraseCounter = 0; EraseCounter < Pages; EraseCounter++){
         fmc_page_erase(StartAddr + (FMC_PAGE_SIZE * EraseCounter));
+		fmc_page_erase(StartAddr + (FMC_PAGE_SIZE * EraseCounter));
         fmc_flag_clear(FMC_FLAG_BANK0_END);
         fmc_flag_clear(FMC_FLAG_BANK0_WPERR);
         fmc_flag_clear(FMC_FLAG_BANK0_PGERR);
     }
 
     /* lock the main FMC after the erase operation */
-    fmc_lock();
+	fmc_lock();
 	return 0;
 }
 
