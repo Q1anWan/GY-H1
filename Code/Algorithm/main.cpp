@@ -22,22 +22,21 @@ extern void ConfigRead(void);
 
 static void LEDCalculateThread(void* parameter);
 static void LEDCANThread(void* parameter);
-static rt_thread_t LEDCal_thread = RT_NULL;
-static rt_thread_t LEDCAN_thread = RT_NULL;
-cWS281x *LED;
+rt_thread_t LEDCal_thread = RT_NULL;
+rt_thread_t LEDCAN_thread = RT_NULL;
+extern cWS281x *LED;
 uint8_t ColotOff = 0;
-LEDColor_t Color={0};
-uint8_t Color_buf[10]={0};
-
 
 static void Test1Thread(void* parameter);
 static rt_thread_t Test1_thread = RT_NULL;
 static void Test2Thread(void* parameter);
 static rt_thread_t Test2_thread = RT_NULL;
-static void Test3Thread(void* parameter);
-static rt_thread_t Test3_thread = RT_NULL;
-static void Test4Thread(void* parameter);
-static rt_thread_t Test4_thread = RT_NULL;
+
+static void KeyThread(void* parameter);
+static rt_thread_t Key_thread = RT_NULL;
+static rt_mailbox_t Key_mailbox;
+static void KeyActionThread(void* parameter);
+static rt_thread_t KeyAction_thread = RT_NULL;
 
 extern void UARTThread(void* parameter);
 extern rt_thread_t UART_thread;
@@ -70,10 +69,6 @@ extern rt_thread_t IMUHeat_thread;
 extern rt_sem_t IMU_INT1Sem;	
 extern rt_sem_t IMU_INT2Sem;
 
-uint8_t dataXXX[128]={0x01,0x01,0x01,0x01};
-uint8_t dataYYY[128]={0x02,0x02,0x02,0x02};
-uint8_t dataZZZ[128]={0x03,0x03,0x03,0x03};
-uint8_t dataUUU[128]={0x04,0x04,0x04,0x04};
 
 uint8_t TxStatue[4];
 
@@ -83,7 +78,7 @@ int main(void)
 	rt_thread_create( 					"LEDCal",           /* 线程名字 */
 										LEDCalculateThread, /* 线程入口函数 */
 										RT_NULL,            /* 线程入口函数参数 */
-										384,                /* 线程栈大小 */
+										256,                /* 线程栈大小 */
 										16,                 /* 线程的优先级 */
 										20);                /* 线程时间片 */	
 	LEDCAN_thread =                          				/* 线程控制块指针 */
@@ -172,6 +167,27 @@ int main(void)
 										2,                  /* 线程的优先级 */
 										1);                 /* 线程时间片 */
 	
+	Key_thread =                          					/* 线程控制块指针 */
+	rt_thread_create( 					"Key",				/* 线程名字 */
+										KeyThread,   		/* 线程入口函数 */
+										RT_NULL,            /* 线程入口函数参数 */
+										256,                /* 线程栈大小 */
+										5,                  /* 线程的优先级 */
+										5);             	/* 线程时间片 */
+	
+	Key_mailbox =
+	rt_mb_create(						"Key_Mb",			/*邮箱名称*/
+										4,					/*邮箱容量*/
+										RT_IPC_FLAG_FIFO);	/*邮箱方式*/
+	
+	KeyAction_thread =                          			/* 线程控制块指针 */
+	rt_thread_create( 					"KeyAction",		/* 线程名字 */
+										KeyActionThread,   	/* 线程入口函数 */
+										RT_NULL,            /* 线程入口函数参数 */
+										256,                /* 线程栈大小 */
+										4,                  /* 线程的优先级 */
+										5);             	/* 线程时间片 */
+	
 	Test1_thread =                          				/* 线程控制块指针 */
 	rt_thread_create( 					"Test1",            /* 线程名字 */
 										Test1Thread,   		/* 线程入口函数 */
@@ -187,22 +203,7 @@ int main(void)
 										768,                /* 线程栈大小 */
 										5,                  /* 线程的优先级 */
 										5);            		/* 线程时间片 */
-	
-	Test3_thread =                          				/* 线程控制块指针 */
-	rt_thread_create( 					"Test3",            /* 线程名字 */
-										Test3Thread,   		/* 线程入口函数 */
-										RT_NULL,            /* 线程入口函数参数 */
-										128,                /* 线程栈大小 */
-										5,                  /* 线程的优先级 */
-										5);               	/* 线程时间片 */
-	
-	Test4_thread =                          				/* 线程控制块指针 */
-	rt_thread_create( 					"Test4",            /* 线程名字 */
-										Test4Thread,   		/* 线程入口函数 */
-										RT_NULL,            /* 线程入口函数参数 */
-										128,                /* 线程栈大小 */
-										5,                  /* 线程的优先级 */
-										5);                	/* 线程时间片 */
+
 										
 	/* 启动线程，开启调度 */
 	rt_thread_startup(UART_thread);
@@ -261,6 +262,8 @@ int main(void)
 					
 	rt_thread_startup(LEDCal_thread);					
 	rt_thread_startup(DataOutput_thread);
+	rt_thread_startup(Key_thread);
+	rt_thread_startup(KeyAction_thread);
 	rt_thread_startup(Test1_thread);
 	rt_thread_startup(Test2_thread);
 	return 0;
@@ -268,7 +271,9 @@ int main(void)
 
 static void LEDCalculateThread(void* parameter)
 {	
-	rt_tick_t ticks;
+	rt_tick_t ticks;	
+	LEDColor_t Color={0};
+
 	float VFie  = PI/256;
 	float VTheta = PI/384;
 	
@@ -276,11 +281,7 @@ static void LEDCalculateThread(void* parameter)
 	float Fie = PI/3;
 	uint16_t CubeHalfHeight = 127;
 	
-	LED = new cWS281x;
-	LED->cSPI::SPI_Init(SPI2,GPIOB,GPIO_PIN_6,DMA1,DMA_CH1);
-	LED->Init(Color_buf);
 	LED->LED_UpdateDMA(&Color,1);
-	
 	for(;;)
 	{	
 		ticks = rt_tick_get();
@@ -318,7 +319,7 @@ static void LEDCalculateThread(void* parameter)
 		LED->LED_UpdateDMA(&Color,1);
 		rt_thread_delay_until(&ticks,8);
 	}
-}
+} 
 
 static void LEDCANThread(void* parameter)
 {
@@ -336,6 +337,64 @@ static void LEDCANThread(void* parameter)
 			rt_thread_delay(200);
 		}
 		rt_thread_delay_until(&ticks,5000);
+	}
+}
+
+static void KeyThread(void* parameter)
+{
+	rt_tick_t ticker;
+	volatile uint32_t TxBuf;
+	uint8_t Last_Key = 1;
+	for(;;)
+	{
+		ticker = rt_tick_get();
+		if(Last_Key != gpio_input_bit_get(GPIOB,GPIO_PIN_4))
+		{	
+			rt_thread_delay(8);
+			TxBuf = rt_tick_get();
+			if(gpio_input_bit_get(GPIOB,GPIO_PIN_4))//不按传0
+			{
+				TxBuf &= (uint32_t)0x7FFFFFFFU;
+				Last_Key = 1;
+			}
+			else//按下传1
+			{
+				TxBuf |= (uint32_t)0x80000000U;
+				Last_Key = 0;
+			}
+			rt_mb_send(Key_mailbox,TxBuf);
+		}
+		rt_thread_delay_until(&ticker,10);
+	}
+}
+static void KeyActionThread(void* parameter)
+{
+	uint32_t Key = 0;
+	uint32_t Key_Last = 0;
+	uint32_t Time = 0;
+	uint32_t Time_Last = 0;
+	uint8_t ModSelMode = 0;
+	for(;;)
+	{
+		rt_mb_recv(Key_mailbox,(rt_ubase_t*)&Key,RT_WAITING_FOREVER);
+		Time = Key&0x7FFFF;
+		Key  = (Key>>31)&0x01;
+		if(Key_Last==1 && Key==0)
+		{
+			if(ModSelMode)
+			{
+				
+			}
+			else if(Time - Time_Last > 2000)
+			{
+				/*进入配置模式*/
+				rt_mb_send(Config_mailbox,0x0100);
+				ModSelMode = 1;
+			}
+
+		}
+		Time_Last = Time;
+		Key_Last = Key;
 	}
 }
 
@@ -365,26 +424,6 @@ static void Test2Thread(void* parameter)
 		Msg->Printf("Accel=%d %d %d\n",IMU->Accel[0],IMU->Accel[1],IMU->Accel[2]);rt_thread_delay(1);
 		Msg->Printf("Tem=%f\n\n",IMU->Temperature);//rt_thread_delay(1);
 		rt_thread_delay(18);
-	}
-}
-static void Test3Thread(void* parameter)
-{
-	rt_thread_delay(1000);
-
-	for(;;)
-	{	
-		Msg->UartTx(0xAA,dataZZZ,12,RT_WAITING_FOREVER);
-		rt_thread_delay(10);
-	}
-}
-static void Test4Thread(void* parameter)
-{
-	rt_thread_delay(1000);
-
-	for(;;)
-	{	
-		Msg->UartTx(dataUUU,12,RT_WAITING_FOREVER);
-		rt_thread_delay(10);
 	}
 }
 

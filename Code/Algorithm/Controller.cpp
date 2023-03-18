@@ -3,11 +3,14 @@
 #include "MsgThread.h"
 #include "IMU.h"
 #include "Data_Exchange.h"
+#include "WS281x.h"
 #include "CRC8.h"
 #include "arm_math.h"
 
 /*控制指针*/
 cCTR *qCtr;
+/*灯控制指针*/
+cWS281x *LED;
 
 /*系统设置进程控制指针*/
 rt_thread_t Config_thread = RT_NULL;
@@ -16,6 +19,8 @@ rt_mailbox_t Config_mailbox = RT_NULL;
 /*数据输出进程*/
 rt_thread_t DataOutput_thread = RT_NULL;
 
+/*灯控制进程*/
+extern rt_thread_t LEDCal_thread;
 /*
 	系统设置控制进程
 	接收到来自串口或者CDC的控制命令后，修改系统设置
@@ -23,8 +28,18 @@ rt_thread_t DataOutput_thread = RT_NULL;
 void ConfigThread(void* parameter)
 {
 	qCtr = new cCTR;
+	LED = new cWS281x;
+	
+	/*LED发送缓冲区*/	
+	uint8_t Color_buf[10]={0};
+	LEDColor_t Color={0};
+	
+	LED->cSPI::SPI_Init(SPI2,GPIOB,GPIO_PIN_6,DMA1,DMA_CH1);
+	LED->Init(Color_buf);
+	
 	uint32_t RecBuf = 0;
 	uint32_t ConfigBuf[5]={0};
+	fmc_read_u32(FLASH_USERDATA_ADDRESS,ConfigBuf,5);
 	for(;;)
 	{
 		rt_mb_recv(Config_mailbox,(rt_ubase_t*)&RecBuf,RT_WAITING_FOREVER);
@@ -56,8 +71,15 @@ void ConfigThread(void* parameter)
 				switch(RecBuf&0xFF)
 				{
 					case 0x00:
+						//进入配置模式
 						fmc_read_u32(FLASH_USERDATA_ADDRESS,ConfigBuf,5);
+						//停止对外输出
+						rt_thread_delete(DataOutput_thread);
+						//关灯
+						rt_thread_delete(LEDCal_thread);
+						LED->LED_UpdateDMA(&Color,1);
 						qCtr->ConfigFlag = 1;
+						
 					break;
 					case 0x01:
 						rt_enter_critical();

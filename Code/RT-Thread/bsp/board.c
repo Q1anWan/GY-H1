@@ -179,7 +179,6 @@ static void GPIO_Init(void)
 	
 	/*KEY*/
 	gpio_init(GPIOB, GPIO_MODE_IPU, GPIO_OSPEED_MAX, GPIO_PIN_4);
-	
 	/*LED*/
 	/*SPI2*/
 	gpio_init(GPIOB, GPIO_MODE_AF_PP, GPIO_OSPEED_MAX, GPIO_PIN_5);
