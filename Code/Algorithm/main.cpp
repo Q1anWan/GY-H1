@@ -17,11 +17,17 @@ uint8_t Test2 = 0;
 uint8_t Test3 = 0;
 
 
-cWS281x LED;
+
 extern void ConfigRead(void);
 
-static void LEDThread(void* parameter);
-static rt_thread_t LED_thread = RT_NULL;
+static void LEDCalculateThread(void* parameter);
+static void LEDCANThread(void* parameter);
+static rt_thread_t LEDCal_thread = RT_NULL;
+static rt_thread_t LEDCAN_thread = RT_NULL;
+cWS281x *LED;
+uint8_t ColotOff = 0;
+LEDColor_t Color={0};
+uint8_t Color_buf[10]={0};
 
 
 static void Test1Thread(void* parameter);
@@ -73,12 +79,19 @@ uint8_t TxStatue[4];
 
 int main(void)
 {	
-	LED_thread =                          					/* 线程控制块指针 */
-	rt_thread_create( 					"LED",             	/* 线程名字 */
-										LEDThread,   		/* 线程入口函数 */
+	LEDCal_thread =                          				/* 线程控制块指针 */
+	rt_thread_create( 					"LEDCal",           /* 线程名字 */
+										LEDCalculateThread, /* 线程入口函数 */
 										RT_NULL,            /* 线程入口函数参数 */
-										256,                /* 线程栈大小 */
-										16,                  /* 线程的优先级 */
+										384,                /* 线程栈大小 */
+										16,                 /* 线程的优先级 */
+										20);                /* 线程时间片 */	
+	LEDCAN_thread =                          				/* 线程控制块指针 */
+	rt_thread_create( 					"LEDCAN",           /* 线程名字 */
+										LEDCANThread,	    /* 线程入口函数 */
+										RT_NULL,            /* 线程入口函数参数 */
+										128,                /* 线程栈大小 */
+										15,                 /* 线程的优先级 */
 										20);                /* 线程时间片 */	
 	
 	UART_thread =                          					/* 线程控制块指针 */
@@ -217,6 +230,7 @@ int main(void)
 											0,					/* 初始化的值 */
 											RT_IPC_FLAG_FIFO);	/* 信号量的标志位 */
 		rt_thread_startup(CAN_thread);
+		rt_thread_startup(LEDCAN_thread);
 		#ifdef qwDbug									
 		rt_kprintf("\nCAN Enable\n");				
 		#endif
@@ -244,31 +258,29 @@ int main(void)
 		rt_kprintf("\nUSB Enable\n");				
 		#endif
 	}
-	
-	rt_thread_startup(LED_thread);					
+					
+	rt_thread_startup(LEDCal_thread);					
 	rt_thread_startup(DataOutput_thread);
 	rt_thread_startup(Test1_thread);
 	rt_thread_startup(Test2_thread);
 	return 0;
 }
 
-
-static void LEDThread(void* parameter)
-{	rt_thread_delay(100);
-	LEDColor_t Color={0};
-	uint8_t Color_buf[10]={0};
+static void LEDCalculateThread(void* parameter)
+{	
 	rt_tick_t ticks;
-
-	float VFie  = PI/127;
-	float VTheta = PI/163;
+	float VFie  = PI/256;
+	float VTheta = PI/384;
 	
-	float Theta = PI/7;
-	float Fie = 0;
-	uint16_t CubeHalfHeight = 40;
+	float Theta = 0;
+	float Fie = PI/3;
+	uint16_t CubeHalfHeight = 127;
 	
-	LED.cSPI::SPI_Init(SPI2,GPIOB,GPIO_PIN_6,DMA1,DMA_CH1);
-	LED.Init(Color_buf);
-	LED.LED_UpdateDMA(&Color,1);
+	LED = new cWS281x;
+	LED->cSPI::SPI_Init(SPI2,GPIOB,GPIO_PIN_6,DMA1,DMA_CH1);
+	LED->Init(Color_buf);
+	LED->LED_UpdateDMA(&Color,1);
+	
 	for(;;)
 	{	
 		ticks = rt_tick_get();
@@ -282,12 +294,48 @@ static void LEDThread(void* parameter)
 		if(Fie>2*PI){Fie-=(2*PI);}
 		else if(Fie<0){Fie+=(2*PI);}
 		
-		Color.GRB[0] = CubeHalfHeight*(arm_sin_f32(Fie)+1);
-		Color.GRB[1] = CubeHalfHeight*(arm_sin_f32(Theta)+1);
-		Color.GRB[2] = CubeHalfHeight*(arm_cos_f32(Theta)+1);
+		if(qCtr->OTSel==0)
+		{
+			Color.GRB[0] = CubeHalfHeight*(arm_sin_f32(Theta)+1);
+			Color.GRB[1] = CubeHalfHeight*(arm_cos_f32(Theta)+1);
+			Color.GRB[2] = CubeHalfHeight*(arm_cos_f32(Fie)+1);
+		}
+		else
+		{
+			Color.GRB[0] = CubeHalfHeight*(arm_sin_f32(Theta)*arm_cos_f32(Fie)+1);
+			Color.GRB[1] = CubeHalfHeight*(arm_sin_f32(Theta)*arm_sin_f32(Fie)+1);
+			Color.GRB[2] = CubeHalfHeight*(arm_cos_f32(Theta)+1);
+		}
+
 		
-		LED.LED_UpdateDMA(&Color,1); 
-		rt_thread_delay_until(&ticks,10);
+		if(ColotOff)
+		{
+			Color.GRB[0] *= 0.3;
+			Color.GRB[1] *= 0.3;
+			Color.GRB[2] *= 0.3;
+		}
+
+		LED->LED_UpdateDMA(&Color,1);
+		rt_thread_delay_until(&ticks,8);
+	}
+}
+
+static void LEDCANThread(void* parameter)
+{
+	rt_thread_delay(1000);
+	rt_tick_t ticks;
+	uint8_t BlinkTim = 1 + ((qCtr->CAN_ID - 0x300)>>4);
+	for(;;)
+	{
+		ticks = rt_tick_get();
+		for(uint8_t i=0;i<BlinkTim;i++)
+		{
+			ColotOff = 1;
+			rt_thread_delay(100);
+			ColotOff = 0;
+			rt_thread_delay(200);
+		}
+		rt_thread_delay_until(&ticks,5000);
 	}
 }
 
@@ -313,10 +361,10 @@ static void Test2Thread(void* parameter)
 	for(;;)
 	{	
 		
-		Msg->Printf("GYRO:  %d %d %d\n",IMU->Gyro[0],IMU->Gyro[1],IMU->Gyro[2]);rt_thread_delay(1);
-		Msg->Printf("Accel: %d %d %d\n",IMU->Accel[0],IMU->Accel[1],IMU->Accel[2]);rt_thread_delay(1);
-		Msg->Printf("Tem: %f\n\n",IMU->Temperature);rt_thread_delay(1);
-		rt_thread_delay(997);
+		Msg->Printf("GYRO=%d %d %d\n",IMU->Gyro[0],IMU->Gyro[1],IMU->Gyro[2]);rt_thread_delay(1);
+		Msg->Printf("Accel=%d %d %d\n",IMU->Accel[0],IMU->Accel[1],IMU->Accel[2]);rt_thread_delay(1);
+		Msg->Printf("Tem=%f\n\n",IMU->Temperature);//rt_thread_delay(1);
+		rt_thread_delay(18);
 	}
 }
 static void Test3Thread(void* parameter)
@@ -342,5 +390,5 @@ static void Test4Thread(void* parameter)
 
 void DMA1_Channel1_IRQHandler(void)
 {
-	LED.cSPI::IRQ_Tx();
+	LED->cSPI::IRQ_Tx();
 }

@@ -163,7 +163,12 @@
         <Ww>
           <count>1</count>
           <WinNumber>1</WinNumber>
-          <ItemText>qCtr</ItemText>
+          <ItemText>qCtr,0x10</ItemText>
+        </Ww>
+        <Ww>
+          <count>2</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>BlinkTim</ItemText>
         </Ww>
       </WatchWindow1>
       <MemoryWindow1>
@@ -859,7 +864,7 @@
 
   <Group>
     <GroupName>USB</GroupName>
-    <tvExp>0</tvExp>
+    <tvExp>1</tvExp>
     <tvExpOptDlg>0</tvExpOptDlg>
     <cbSel>0</cbSel>
     <RteFlg>0</RteFlg>
@@ -951,7 +956,7 @@
 
   <Group>
     <GroupName>RT_Thread</GroupName>
-    <tvExp>0</tvExp>
+    <tvExp>1</tvExp>
     <tvExpOptDlg>0</tvExpOptDlg>
     <cbSel>0</cbSel>
     <RteFlg>0</RteFlg>

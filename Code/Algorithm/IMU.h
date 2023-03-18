@@ -18,13 +18,13 @@ class cIMU :public cICM42688,public PID_Inc_C
 	void PID_Init(void)
 	{
 		this->Ref = 41.0f;
-		this->Kp = 150.0f;
-		this->Ki = 3.0f;
-		this->Kd = 2.0f;
-		this->IN_RANGE_EN_D = 2.0f;	//开启微分项范围 值为0时始终开启
+		this->Kp = 200.0f;
+		this->Ki = 2.0f;
+		this->Kd = 5.0f;
+		this->IN_RANGE_EN_D = 3.0f;	//开启微分项范围 值为0时始终开启
 		this->IN_RANGE_EN_I = 0.0f;	//开启积分项范围 值为0时始终开启
 		this->MaxOutValue=999.0;		//输出限幅
-		this->MinOutValue=200.0;
+		this->MinOutValue=300.0;
 	}
 	cIMU()
 	{PID_Init();}

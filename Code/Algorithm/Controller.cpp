@@ -294,7 +294,7 @@ void ConfigRead(void)
 	fmc_read_u32(FLASH_USERDATA_ADDRESS,buf,5);
 	
 	qCtr->OTSel  	= (uint8_t)(buf[0]&(uint32_t)0x000000FFU);
-	qCtr->CAN_ID 	= (uint16_t)(SYS_CAN_ID_BASE+(buf[0]&(uint32_t)0x0000FF00U));
+	qCtr->CAN_ID 	= (uint16_t)(SYS_CAN_ID_BASE+((buf[0]&(uint32_t)0x0000FF00U)>>4));
 	qCtr->ODR 		= (uint8_t)((buf[0]&(uint32_t)0x00FF0000U)>>16);
 	qCtr->OutPutMode= (uint8_t)((buf[0]&(uint32_t)0xFF000000U)>>24);
 	
