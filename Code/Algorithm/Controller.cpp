@@ -96,8 +96,9 @@ void ConfigThread(void* parameter)
 				
 			default:
 			if(qCtr->ConfigFlag){
+			Color.GRB[0] = 50;Color.GRB[1] = 50;Color.GRB[2] = 50;LED->LED_UpdateDMA(&Color,1);
 			switch(RecBuf>>8){
-				
+	
 			case 0x02:
 				switch(RecBuf&0xFF)
 				{
@@ -180,7 +181,10 @@ void ConfigThread(void* parameter)
 			case 0x1B://设定校正值AccelZ_L
 				ConfigBuf[3] &= (uint32_t)0xFFFFFF00U;
 				ConfigBuf[3] |= (uint32_t)(RecBuf&0xFF);
-			break;}}break;
+			break;}
+			rt_thread_delay(3);
+			Color.GRB[0] = 0;Color.GRB[1] = 0;Color.GRB[2] = 0;LED->LED_UpdateDMA(&Color,1);
+			}break;
 		}
 	}
 }
