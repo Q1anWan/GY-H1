@@ -265,7 +265,7 @@ int main(void)
 	rt_thread_startup(Key_thread);
 	rt_thread_startup(KeyAction_thread);
 	rt_thread_startup(Test1_thread);
-	rt_thread_startup(Test2_thread);
+	//rt_thread_startup(Test2_thread);
 	return 0;
 }
 
@@ -279,7 +279,7 @@ static void LEDCalculateThread(void* parameter)
 	
 	float Theta = 0;
 	float Fie = PI/3;
-	uint16_t CubeHalfHeight = 127;
+	uint16_t CubeHalfHeight = 30;
 	
 	LED->LED_UpdateDMA(&Color,1);
 	for(;;)

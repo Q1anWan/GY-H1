@@ -7,7 +7,7 @@
 #include "usbd_lld_int.h"
 #include "usbd_lld_core.h"
 #ifdef __cplusplus
-
+#define CMD_PACG_HEAD 0x30
 class cMSG : public cUART
 {
 	

@@ -51,7 +51,7 @@ void UARTThread(void* parameter)
 		/*接收进程处理*/
 		rt_sem_take(UART0_RxSem,RT_WAITING_FOREVER);
 		
-		if(Msg->cUART::Recieve_Length == SYS_CONFIG_PACK_LEN)//长度正确
+		if((Msg->cUART::Recieve_Length == SYS_CONFIG_PACK_LEN)&&(Msg->UartRecBuf[0]==CMD_PACG_HEAD))//长度正确 包头正确
 		{
 			
 			if(Msg->UartRecBuf[3]==cal_crc8_table(Msg->UartRecBuf,3))//CRC通过
@@ -87,7 +87,7 @@ void USBDThread(void* parameter)
 		Msg->USB_COM = (usb_cdc_handler *)my_usb_dev->class_data[CDC_COM_INTERFACE];
 		if(Msg->USB_COM->receive_length == SYS_CONFIG_PACK_LEN)//长度正确
 		{
-			if(Msg->USB_COM->data[3]==cal_crc8_table(Msg->USB_COM->data,3))//CRC通过
+			if((Msg->USB_COM->data[3]==cal_crc8_table(Msg->USB_COM->data,3))&&Msg->USB_COM->data[0]==CMD_PACG_HEAD)//CRC通过 包头正确
 			{	Msg->USBTx(Msg->USB_COM->data,4,2);//回复信息
 				uint16_t mb_buf = (Msg->USB_COM->data[1]<<8) | (Msg->USB_COM->data[2]);
 				rt_mb_send(Config_mailbox,(rt_ubase_t)mb_buf);
