@@ -79,8 +79,10 @@ void USBDThread(void* parameter)
 	usbd_init(my_usb_dev,&cdc_desc,&cdc_class);
 	Msg->USB_COM = (usb_cdc_handler *)my_usb_dev->class_data[CDC_COM_INTERFACE];
 	usbd_connect(my_usb_dev);
+	#ifdef qwDbug
 	/* wait for standard USB enumeration is finished */
     if(my_usb_dev->cur_status == USBD_CONNECTED){rt_kprintf("USB Connective");}
+	#endif
 	for(;;)
 	{
 		rt_sem_take(USBD_Sem,RT_WAITING_FOREVER);

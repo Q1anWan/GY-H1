@@ -46,6 +46,7 @@ void ConfigThread(void* parameter)
 		switch(RecBuf>>8)
 		{
 			case 0x00:
+				rt_enter_critical();
 				switch(RecBuf&0xFF)
 				{
 					case 0x00://ÖØÆô
@@ -59,13 +60,13 @@ void ConfigThread(void* parameter)
 						IMU->Q[3]=0.0f;
 					break;				
 					case 0x02:
-						qCtr->EnableOutput = 1;
-						rt_thread_resume(DataOutput_thread);
+						qCtr->EnableOutput = 1;;
 					break;
 					case 0x03:
 						qCtr->EnableOutput = 0;
 					break;						
 				}
+				rt_exit_critical();
 			break;
 			case 0x01:
 				switch(RecBuf&0xFF)
@@ -198,11 +199,9 @@ void DataOutputThread(void* parameter)
 	const uint16_t DelayTime = 1 << qCtr->ODR;
 	rt_tick_t ticker;
 	for(;;)
-	{
-		if(qCtr->EnableOutput==0)
-		{rt_thread_suspend(DataOutput_thread);rt_schedule();}
+	{		
 		ticker = rt_tick_get();
-
+		if(qCtr->EnableOutput==1){
 		if(qCtr->OTSel==1)
 		{
 			uint8_t TxBuf[8]={0};
@@ -308,7 +307,7 @@ void DataOutputThread(void* parameter)
 				Msg->UartTx(TxBuf,14,RT_WAITING_NO);
 				#endif
 			break;
-		}
+		}}
 		
 		rt_thread_delay_until(&ticker,DelayTime);
 	}

@@ -8,6 +8,8 @@ import tkinter
 from tkinter import ttk
 from tkinter import messagebox
 
+import crcmod
+
 global COM
 global FunNow
 global OutMode_CB
@@ -15,6 +17,12 @@ global ODR_CB
 global OutFormat_CB
 global ID_CB
 global GUI
+
+#输入Byte 返回Byte
+def CRC8(bytes):
+    crc_class = crcmod.predefined.Crc('crc-8-maxim')
+    crc_class.update(bytes)
+    return crc_class.crcValue.to_bytes(length=1,byteorder='big')
 
 def portIsUsable(portName):
     try:
@@ -26,12 +34,12 @@ def portIsUsable(portName):
 def IsGYH1Connected():
     try:
         #发送空白信息
-        Data = '30 FF FF 6A'
-        TxBuf = bytes.fromhex(Data)
         COM.flushInput()
+        TxBuf = CMDPack(order='FF',data='FF')
         COM.write(TxBuf)
-        time.sleep(0.01)
+        time.sleep(0.001)
         count=COM.inWaiting()
+        #读取有无空白信息
         Rec = COM.read(count)
         if Rec == TxBuf:
             return True
@@ -40,13 +48,21 @@ def IsGYH1Connected():
     except:
        return False
     
+#给出控制符和命令数据，自动补齐包头和CRC8
+def CMDPack(order,data):
+    buf = bytes.fromhex('30')
+    buf += bytes.fromhex(order)
+    buf += bytes.fromhex(data)
+    buf += CRC8(buf)
+    return buf
+
 def COMConnect():
     global COM
     port_list = list(serial.tools.list_ports.comports())
     if len(port_list) < 1:
-        print('无可用串口,按回车键退出')
+        print('\n无可用串口,按回车键重新扫描')
         input()
-        exit()
+        return False
     else:
         print('可使用串口如下:')
         for i in range(len(port_list)): print('ID',i,':',port_list[i])
@@ -58,7 +74,7 @@ def COMConnect():
             except:
                 i = input("\n请重新输入串口ID: ")
 
-        while i > len(port_list):
+        while i > len(port_list) - 1:
             i = input("\n请重新输入串口ID: ")
             while True:
                 try:
@@ -72,25 +88,17 @@ def COMConnect():
             return False
         
         print('连接设备中...')
-        COM = serial.Serial(port_list[i].name, 512000, timeout = 0.1)
+        COM = serial.Serial(port_list[i].name, 512000, timeout = 0.2)
         #重启GY-H1
-        Data = '30 00 00 DE'
-        TxBuf = bytes.fromhex(Data)
+        TxBuf = CMDPack(order='00',data='00')
         COM.write(TxBuf)
         time.sleep(1)
-
-        #关闭对外数据输出
+        #重新连接设备
         if portIsUsable(port_list[i].name) == True:
-            COM = serial.Serial(port_list[i].name, 512000, timeout = 0.05)
+            COM = serial.Serial(port_list[i].name, 512000, timeout = 0.2)
         
-        Data = '30 00 03 3C'
-        TxBuf = bytes.fromhex(Data)
-        COM.write(TxBuf)
-        time.sleep(0.01)
-
         #关闭串口对外信息发送
-        Data = '30 00 03 3C'
-        TxBuf = bytes.fromhex(Data)
+        TxBuf = CMDPack(order='00',data='03')
         COM.write(TxBuf)
         time.sleep(0.01)
 
@@ -102,6 +110,7 @@ def COMConnect():
             print('\nGY-H1 连接错误\n')
             COM.close()
             return False
+        
 def SettingApply():
     global GUI
     global OutMode_CB
@@ -115,112 +124,89 @@ def SettingApply():
         GUI.destroy()
         return
     else:
-        Data = '30 01 00 1A'
-        TxBuf = bytes.fromhex(Data)
+        TxBuf = CMDPack(order='01',data='00')
         COM.write(TxBuf)
         time.sleep(0.01)
 
         match OutMode_CB.get():
             case "USB-C":
-                Data = '30 02 00 4F'
-                TxBuf = bytes.fromhex(Data)
+                TxBuf = CMDPack(order='02',data='00')
                 COM.write(TxBuf)
             case "CAN":
-                Data = '30 02 01 11'
-                TxBuf = bytes.fromhex(Data)
+                TxBuf = CMDPack(order='02',data='01')
                 COM.write(TxBuf)
         time.sleep(0.01)
 
         match ODR_CB.get():
             case "1000Hz":
-                Data = '30 03 00 8B'
-                TxBuf = bytes.fromhex(Data)
+                TxBuf = CMDPack(order='03',data='00')
                 COM.write(TxBuf)
             case "500Hz":
-                Data = '30 03 01 D5'
-                TxBuf = bytes.fromhex(Data)
+                TxBuf = CMDPack(order='03',data='01')
                 COM.write(TxBuf)
             case "250Hz":
-                Data = '30 03 02 F3'
-                TxBuf = bytes.fromhex(Data)
+                TxBuf = CMDPack(order='03',data='02')
                 COM.write(TxBuf)
             case "125Hz":
-                Data = '30 03 03 69'
-                TxBuf = bytes.fromhex(Data)
+                TxBuf = CMDPack(order='03',data='03')
                 COM.write(TxBuf)
         time.sleep(0.01)
 
         match OutFormat_CB.get():
             case "Quaternion":
-                Data = '30 02 02 F3'
-                TxBuf = bytes.fromhex(Data)
+                TxBuf = CMDPack(order='02',data='02')
                 COM.write(TxBuf)
             case "Raw data":
-                Data = '30 02 03 AD'
-                TxBuf = bytes.fromhex(Data)
+                TxBuf = CMDPack(order='02',data='03')
                 COM.write(TxBuf)
             case "Processed data":
-                Data = '30 02 04 2E'
-                TxBuf = bytes.fromhex(Data)
+                TxBuf = CMDPack(order='02',data='04')
                 COM.write(TxBuf)
         time.sleep(0.01)
 
         match ID_CB.get():
             case "1":
-                Data = '30 04 00 E5'
-                TxBuf = bytes.fromhex(Data)
+                TxBuf = CMDPack(order='04',data='00')
                 COM.write(TxBuf)
             case "2":
-                Data = '30 04 01 BB'
-                TxBuf = bytes.fromhex(Data)
+                TxBuf = CMDPack(order='04',data='01')
                 COM.write(TxBuf)
             case "3":
-                Data = '30 04 02 59'
-                TxBuf = bytes.fromhex(Data)
+                TxBuf = CMDPack(order='04',data='02')
                 COM.write(TxBuf)
             case "4":
-                Data = '30 04 03 07'
-                TxBuf = bytes.fromhex(Data)
+                TxBuf = CMDPack(order='04',data='03')
                 COM.write(TxBuf)
             case "5":
-                Data = '30 04 04 84'
-                TxBuf = bytes.fromhex(Data)
+                TxBuf = CMDPack(order='04',data='04')
                 COM.write(TxBuf)
             case "6":
-                Data = '30 04 05 DA'
-                TxBuf = bytes.fromhex(Data)
+                TxBuf = CMDPack(order='04',data='05')
                 COM.write(TxBuf)
             case "7":
-                Data = '30 04 06 38'
-                TxBuf = bytes.fromhex(Data)
+                TxBuf = CMDPack(order='04',data='06')
                 COM.write(TxBuf)
             case "8":
-                Data = '30 04 07 66'
-                TxBuf = bytes.fromhex(Data)
+                TxBuf = CMDPack(order='04',data='07')
                 COM.write(TxBuf)
             case "9":
-                Data = '30 04 08 27'
-                TxBuf = bytes.fromhex(Data)
+                TxBuf = CMDPack(order='04',data='08')
                 COM.write(TxBuf)
+
         time.sleep(0.01)
 
         if IsGYH1Connected() == False:
-            tkinter.messagebox.showinfo('Error','GY-H1 Disconneted!!')
+            tkinter.messagebox.showinfo('Error','GY-H1 Config Failed!!')
             print("GY-H1 Setting Failed!!\n")
-            GUI.destroy()
-            return
-
-        Data = '30 01 01 44'
-        TxBuf = bytes.fromhex(Data)
+        else:
+            tkinter.messagebox.showinfo('Info','GY-H1 Configuration Succeed!!')
+            print("GY-H1 Setting Succeed!!\n")
+        
+        time.sleep(0.01)
+        TxBuf = CMDPack(order='01',data='01')
         COM.write(TxBuf)
         time.sleep(0.01)
-        tkinter.messagebox.showinfo('Info','GY-H1 Setting Succeed!!')
-        print("GY-H1 Setting Succeed!!\n")
         GUI.destroy()
-
-        
-        
-    
 
 #GY-H1 Setting
 def GYSetFunGUI():
@@ -239,7 +225,6 @@ def GYSetFunGUI():
     Title1 = tkinter.Label(GUI,anchor='n',text='GY-H1 SETTING',bg='blue',fg="white",font=('Arial', 16),width=40,height=1)
     Title1.pack(side='top',fill='x')
    
-
     #输出模式设置
     TCB1 = tkinter.Label(GUI,anchor='n',bg='deepskyblue',fg='white',text='OutMode',font=('Arial', 11),width=16,height=1)
     OutMode_CB = ttk.Combobox(GUI,width='18',justify='left')
@@ -277,19 +262,36 @@ def GYSetFunGUI():
     ID_CB.pack(pady = 0)
 
     GUI.mainloop()
-    
+
+def RawDataRec():
+    global COM
+    #开启数据接收
+    Txbuf = CMDPack(order='00',data='02')
+    COM.write(Txbuf)
+    while True:
+        RecBuf = COM.read(14)
+        #对齐数据
+        if COM.inWaiting() != 0 :
+            COM.flushInput()
+            print('-\n\n'*10)
+            continue
+        print(list(RecBuf))
+
+            
+
 ###
 ### Function Begin Here
 ###
 print("-"*50)
-print("\n\n\t\tGY-H1 Upper V0.5\n")
+print("\n\n\t\tGY-H1 Upper V0.6\n")
 print("\t\tDesigned by qianwan\n")
-print("\t\t2023-03-20\n\n")
+print("\t\t2023-03-22\n\n")
 print("-"*50)
+
 while True:
     #连接芯片
     while COMConnect() == False :
-        time.sleep(0.5)
+        time.sleep(0.001)
         print('*'*50)
     print('*'*50)
     #展开功能界面
@@ -310,13 +312,25 @@ while True:
             GYSetFunGUI()
         case 2:
             print('Calibrate Running...\n')
+            time.sleep(0.01)
+            RawDataRec()
+            
     
+    time.sleep(0.01)
+    
+    #特殊情况下重启GY-H1
+    try:
+        TxBuf = CMDPack(order='00',data='00')
+        COM.write(TxBuf)
+    except:
+        time.sleep(0.01)
+
+    time.sleep(0.5)
     COM.close()
     print('*'*50)
-
+    time.sleep(0.5)
 
     
-
 
 # SerialReadThread = threading.Thread(target=SerialRead)
 # SerialWriteThread = threading.Thread(target=SerialWrite)

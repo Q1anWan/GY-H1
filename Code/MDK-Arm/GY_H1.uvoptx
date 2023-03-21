@@ -205,6 +205,16 @@
           <WinNumber>1</WinNumber>
           <ItemText>Color</ItemText>
         </Ww>
+        <Ww>
+          <count>10</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>Msg</ItemText>
+        </Ww>
+        <Ww>
+          <count>11</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>pdata[13]</ItemText>
+        </Ww>
       </WatchWindow1>
       <WatchWindow2>
         <Ww>
@@ -231,6 +241,16 @@
           <count>4</count>
           <WinNumber>2</WinNumber>
           <ItemText>IMU,0x10</ItemText>
+        </Ww>
+        <Ww>
+          <count>5</count>
+          <WinNumber>2</WinNumber>
+          <ItemText>TxBuf</ItemText>
+        </Ww>
+        <Ww>
+          <count>6</count>
+          <WinNumber>2</WinNumber>
+          <ItemText>uc_index</ItemText>
         </Ww>
       </WatchWindow2>
       <MemoryWindow1>

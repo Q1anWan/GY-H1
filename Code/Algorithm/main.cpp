@@ -115,8 +115,8 @@ int main(void)
 	rt_thread_create( 					"Config",           /* 线程名字 */
 										ConfigThread,   	/* 线程入口函数 */
 										RT_NULL,            /* 线程入口函数参数 */
-										368,              	/* 线程栈大小 */
-										2,                  /* 线程的优先级 */
+										512,              	/* 线程栈大小 */
+										1,                  /* 线程的优先级 */
 										5);                 /* 线程时间片 */	
 
 	Config_mailbox =
@@ -163,9 +163,9 @@ int main(void)
 	rt_thread_create( 					"DataOuput",      	/* 线程名字 */
 										DataOutputThread,   /* 线程入口函数 */
 										RT_NULL,            /* 线程入口函数参数 */
-										768,                /* 线程栈大小 */
+										1024,                /* 线程栈大小 */
 										2,                  /* 线程的优先级 */
-										1);                 /* 线程时间片 */
+										5);                 /* 线程时间片 */
 	
 	Key_thread =                          					/* 线程控制块指针 */
 	rt_thread_create( 					"Key",				/* 线程名字 */
@@ -187,23 +187,6 @@ int main(void)
 										256,                /* 线程栈大小 */
 										4,                  /* 线程的优先级 */
 										5);             	/* 线程时间片 */
-	
-	Test1_thread =                          				/* 线程控制块指针 */
-	rt_thread_create( 					"Test1",            /* 线程名字 */
-										Test1Thread,   		/* 线程入口函数 */
-										RT_NULL,            /* 线程入口函数参数 */
-										512,                /* 线程栈大小 */
-										5,                  /* 线程的优先级 */
-										5);             	/* 线程时间片 */
-	
-	Test2_thread =                          				/* 线程控制块指针 */
-	rt_thread_create( 					"Test2",            /* 线程名字 */
-										Test2Thread,   		/* 线程入口函数 */
-										RT_NULL,            /* 线程入口函数参数 */
-										768,                /* 线程栈大小 */
-										5,                  /* 线程的优先级 */
-										5);            		/* 线程时间片 */
-
 										
 	/* 启动线程，开启调度 */
 	rt_thread_startup(UART_thread);
@@ -264,8 +247,26 @@ int main(void)
 	rt_thread_startup(DataOutput_thread);
 	rt_thread_startup(Key_thread);
 	rt_thread_startup(KeyAction_thread);
+	#ifdef qwDbug
+	Test1_thread =                          				/* 线程控制块指针 */
+	rt_thread_create( 					"Test1",            /* 线程名字 */
+										Test1Thread,   		/* 线程入口函数 */
+										RT_NULL,            /* 线程入口函数参数 */
+										512,                /* 线程栈大小 */
+										5,                  /* 线程的优先级 */
+										5);             	/* 线程时间片 */
+	
+	Test2_thread =                          				/* 线程控制块指针 */
+	rt_thread_create( 					"Test2",            /* 线程名字 */
+										Test2Thread,   		/* 线程入口函数 */
+										RT_NULL,            /* 线程入口函数参数 */
+										768,                /* 线程栈大小 */
+										5,                  /* 线程的优先级 */
+										5);            		/* 线程时间片 */
+	
 	rt_thread_startup(Test1_thread);
-	//rt_thread_startup(Test2_thread);
+	rt_thread_startup(Test2_thread);
+	#endif
 	return 0;
 }
 
