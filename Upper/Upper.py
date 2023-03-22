@@ -8,15 +8,52 @@ import tkinter
 from tkinter import ttk
 from tkinter import messagebox
 
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.figure import Figure
+from collections import deque
+import numpy as np
+from math import *
+
 import crcmod
+import DataProcess as DP
 
 global COM
-global FunNow
+
 global OutMode_CB
 global ODR_CB
 global OutFormat_CB
 global ID_CB
+
+global Data_Thread_Enable
+global Cal_Thread_Enable
+
+global UI_Gyro_Line
+global UI_Accel_Line
+
+global aG
+global aA
+#IMU原始数据 INT类 FIFO队列
+#使用500Hz
+global UI_t
+global GyXq
+global GyYq
+global GyZq
+global AcXq
+global AcYq
+global AcZq
+
+#修正值 INT
+global GyXc
+global GyYc
+global GyZc
+global AcXc
+global AcYc
+global AcZc
+
 global GUI
+
 
 #输入Byte 返回Byte
 def CRC8(bytes):
@@ -58,6 +95,8 @@ def CMDPack(order,data):
 
 def COMConnect():
     global COM
+    global port_list
+    global sel_i 
     port_list = list(serial.tools.list_ports.comports())
     if len(port_list) < 1:
         print('\n无可用串口,按回车键重新扫描')
@@ -65,37 +104,37 @@ def COMConnect():
         return False
     else:
         print('可使用串口如下:')
-        for i in range(len(port_list)): print('ID',i,':',port_list[i])
-        i = input("\n请输入要启用的 GY-H1 串口ID: ")
+        for sel_i in range(len(port_list)): print('ID',sel_i,':',port_list[sel_i])
+        sel_i = input("\n请输入要启用的 GY-H1 串口ID: ")
         while True:
             try:
-                i=int(i)
+                sel_i=int(sel_i)
                 break
             except:
-                i = input("\n请重新输入串口ID: ")
+                sel_i = input("\n请重新输入串口ID: ")
 
-        while i > len(port_list) - 1:
-            i = input("\n请重新输入串口ID: ")
+        while sel_i > len(port_list) - 1:
+            sel_i = input("\n请重新输入串口ID: ")
             while True:
                 try:
-                    i=int(i)
+                    sel_i=int(sel_i)
                     break
                 except:
-                    i = input("\n请重新输入串口ID: ")
+                    sel_i = input("\n请重新输入串口ID: ")
 
-        if portIsUsable(port_list[i].name) == False:
+        if portIsUsable(port_list[sel_i].name) == False:
             print("\n串口已被占用,请重新选择\n")
             return False
         
         print('连接设备中...')
-        COM = serial.Serial(port_list[i].name, 512000, timeout = 0.2)
+        COM = serial.Serial(port_list[sel_i].name, 512000, timeout = 0.1)
         #重启GY-H1
         TxBuf = CMDPack(order='00',data='00')
         COM.write(TxBuf)
         time.sleep(1)
         #重新连接设备
-        if portIsUsable(port_list[i].name) == True:
-            COM = serial.Serial(port_list[i].name, 512000, timeout = 0.2)
+        if portIsUsable(port_list[sel_i].name) == True:
+            COM = serial.Serial(port_list[sel_i].name, 512000, timeout = 0.1)
         
         #关闭串口对外信息发送
         TxBuf = CMDPack(order='00',data='03')
@@ -112,12 +151,17 @@ def COMConnect():
             return False
         
 def SettingApply():
+    global COM
+    global port_list
+    global sel_i 
+
     global GUI
     global OutMode_CB
     global ODR_CB
     global OutFormat_CB
     global ID_CB
     time.sleep(0.01)
+    
     if IsGYH1Connected() == False:
         tkinter.messagebox.showinfo('Error','GY-H1 Disconneted!!')
         print("GY-H1 Setting Failed!!\n")
@@ -210,7 +254,7 @@ def SettingApply():
 
 #GY-H1 Setting
 def GYSetFunGUI():
-    global FunNow
+
     global OutMode_CB
     global ODR_CB
     global OutFormat_CB
@@ -226,7 +270,7 @@ def GYSetFunGUI():
     Title1.pack(side='top',fill='x')
    
     #输出模式设置
-    TCB1 = tkinter.Label(GUI,anchor='n',bg='deepskyblue',fg='white',text='OutMode',font=('Arial', 11),width=16,height=1)
+    TCB1 = tkinter.Label(GUI,anchor='n',bg='deepskyblue',fg='white',text='OTSEL',font=('Arial', 11),width=16,height=1)
     OutMode_CB = ttk.Combobox(GUI,width='18',justify='left')
     OutMode_CB["value"]=("USB-C","CAN")
     OutMode_CB.current(0)
@@ -238,7 +282,7 @@ def GYSetFunGUI():
     ODR_CB.current(2)
 
     #输出数据设置
-    TCB3 = tkinter.Label(GUI,anchor='n',bg='deepskyblue',fg='white',text='OutFormat',font=('Arial', 11),width=16,height=1)
+    TCB3 = tkinter.Label(GUI,anchor='n',bg='deepskyblue',fg='white',text='MOD',font=('Arial', 11),width=16,height=1)
     OutFormat_CB = ttk.Combobox(GUI,width='18',justify='left')
     OutFormat_CB["value"]=("Quaternion","Raw data","Processed data")
     OutFormat_CB.current(0)
@@ -263,30 +307,463 @@ def GYSetFunGUI():
 
     GUI.mainloop()
 
+def ConnecWarning():
+    global ConnectButton
+
+    ConnectButton['bg'] = 'yellow'
+    ConnectButton['fg'] = 'red'
+    ConnectButton['command'] = CalConRec
+    ConnectButton['text'] = 'Start Read Data'
+    
+    tkinter.messagebox.showinfo('Info','此操作将会重置ORD与MOD\n请在结束校准后重新设置!!')
+
+
+def CalConRec():
+    global COM
+    global port_list
+    global sel_i
+    global ConnectButton
+    global ACalButton
+    global GCalButton
+    global GUI
+    global MOD_Cal
+    global Data_Thread_Enable
+
+    ConnectButton['state'] = 'disable'
+    MOD_Cal['state'] = 'disable'
+    ConnectButton['bg'] = 'white'
+
+    if MOD_Cal.get() == "Check Raw data":
+        ConnectButton['text'] = 'Reading Raw Data...'
+        ACalButton['bg'] = 'Gold'
+        ACalButton['fg'] = 'OrangeRed'
+        ACalButton['state'] = 'normal'
+        GCalButton['bg'] = 'Gold'
+        GCalButton['fg'] = 'OrangeRed'
+        GCalButton['state'] = 'normal'
+    else:
+        ConnectButton['text'] = 'Reading Processed Data...'
+        ACalButton['bg'] = 'white'
+        GCalButton['bg'] = 'white'
+
+    #检验设备连接状态
+    if IsGYH1Connected() == False:
+        tkinter.messagebox.showinfo('Error','GY-H1连接异常!!')
+        GUI.destroy()
+        return False
+    
+    #进入配置模式
+    time.sleep(0.1)
+    TxBuf = CMDPack(order='01',data='00')
+    COM.write(TxBuf)
+    time.sleep(0.1)
+    #设置输出速率
+    TxBuf = CMDPack(order='03',data='01')
+    COM.write(TxBuf)
+    time.sleep(0.1)
+    #设置输出模式
+    if MOD_Cal.get() == "Check Raw data":
+        TxBuf = CMDPack(order='02',data='03')
+    else:
+        TxBuf = CMDPack(order='02',data='04')
+    COM.write(TxBuf)
+    time.sleep(0.1)
+    #保存设置
+    TxBuf = CMDPack(order='01',data='01')
+    COM.write(TxBuf)
+    time.sleep(0.5)
+    COM.close()
+    time.sleep(0.5)
+    
+    #重新连接设备
+    if portIsUsable(port_list[sel_i].name) == False:
+        tkinter.messagebox.showinfo('Error','GY-H1连接异常!!')
+        GUI.destroy()
+        print('GY-H1连接异常!!')
+        return False
+    COM = serial.Serial(port_list[sel_i].name, 512000, timeout = 0.1)
+    
+    #启动接收进程
+    Data_Thread_Enable = 1
+    thread_RawDataRec = threading.Thread(target=RawDataRec)
+    thread_RawDataRec.start()   
+
 def RawDataRec():
     global COM
-    #开启数据接收
+    global Data_Thread_Enable
+    
+    global UI_t
+    global GyXq
+    global GyYq
+    global GyZq
+    global AcXq
+    global AcYq
+    global AcZq
+
+    #确保开启数据接收
     Txbuf = CMDPack(order='00',data='02')
     COM.write(Txbuf)
+
+    tbuf = 0
+    lostpack = 0
     while True:
         RecBuf = COM.read(14)
         #对齐数据
         if COM.inWaiting() != 0 :
             COM.flushInput()
-            print('-\n\n'*10)
-            continue
-        print(list(RecBuf))
+       
+        #CRC校验
+        if RecBuf[13:14] == CRC8(RecBuf[0:13]):
+            GyroX = int.from_bytes(RecBuf[1:3],byteorder='big',signed=True)
+            GyroY = int.from_bytes(RecBuf[3:5],byteorder='big',signed=True)
+            GyroZ = int.from_bytes(RecBuf[5:7],byteorder='big',signed=True)
+            AccelX = int.from_bytes(RecBuf[7:9],byteorder='big',signed=True)
+            AccelY = int.from_bytes(RecBuf[9:11],byteorder='big',signed=True)
+            AccelZ = int.from_bytes(RecBuf[11:13],byteorder='big',signed=True)
 
-            
+            #进入队列
+            tbuf += 0.003#加了矫正
+            UI_t.append(tbuf)
+            GyXq.append(GyroX)
+            GyYq.append(GyroY)
+            GyZq.append(GyroZ)
+            AcXq.append(AccelX)
+            AcYq.append(AccelY)
+            AcZq.append(AccelZ)
+        # else:
+        #     print('-没CRC\n\n')
+
+        #进程退出
+        if Data_Thread_Enable == 0:
+            break
+
+def Gyro_Update(i):
+    global GyXq
+    global GyYq
+    global GyZq
+    global UI_t
+    global UI_Gyro_Line
+
+    if len(GyXq)!=0:
+        aG.set_xlim(UI_t[0],UI_t[-1])
+        max1 = np.amax(GyXq)
+        max2 = np.amax(GyYq)
+        max3 = np.amax(GyZq)
+        min1 = np.amin(GyXq)
+        min2 = np.amin(GyYq)
+        min3 = np.amin(GyZq)
+       
+        if max1 > max2:
+            max = max1
+        else:
+            max = max2
+        if max3 > max:
+            max = max3
+
+        if min1 < min2:
+            min = min1
+        else:
+            min = min2
+        if min3 < min:
+            min = min3
+
+        aG.set_ylim(min-0.2*np.abs(min),max+0.2*np.abs(max))
+        UI_Gyro_Line[0].set_data(UI_t,GyXq)  # update the data
+        UI_Gyro_Line[1].set_data(UI_t,GyYq)  # update the data
+        UI_Gyro_Line[2].set_data(UI_t,GyZq)  # update the data
+    return UI_Gyro_Line,
+
+def Accel_Update(i):
+    global AcXq
+    global AcYq
+    global AcZq
+    global UI_t
+    global UI_Accel_Line
+
+    if len(AcXq)!=0:
+        aA.set_xlim(UI_t[0],UI_t[len(UI_t)-1])
+        max1 = np.amax(AcXq)
+        max2 = np.amax(AcYq)
+        max3 = np.amax(AcZq)
+        min1 = np.amin(AcXq)
+        min2 = np.amin(AcYq)
+        min3 = np.amin(AcZq)
+    
+        if max1 > max2:
+            max = max1
+        else:
+            max = max2
+        if max3 > max:
+            max = max3
+
+        if min1 < min2:
+            min = min1
+        else:
+            min = min2
+        if min3 < min:
+            min = min3
+
+        aA.set_ylim(min-0.2*np.abs(min),max+0.2*np.abs(max))
+        UI_Accel_Line[0].set_data(UI_t,AcXq)  # update the data
+        UI_Accel_Line[1].set_data(UI_t,AcYq)  # update the data
+        UI_Accel_Line[2].set_data(UI_t,AcZq)  # update the data
+    return UI_Accel_Line,
+
+def AccelCaliThread():
+    global Cal_Thread_Enable
+    while True:
+        time.sleep(0.1)
+        if Cal_Thread_Enable == 0:
+            return False
+    return
+
+def AccelKeyHandel():
+    global Cal_Thread_Enable
+    Cal_Thread_Enable = 1
+    ACalButton['state'] = 'disable'
+    GCalButton['state'] = 'disable'
+    ACalButton['bg'] = 'DarkGreen'
+    ACalButton['fg'] = 'Gold'
+    GCalButton['bg'] = 'white'
+    threading.Thread(target=AccelCaliThread).start()
+
+    return
+
+def GyroCaliThread():
+    global Cal_Thread_Enable
+    global Data_Thread_Enable
+    global GyXc
+    global GyYc
+    global GyZc
+
+    print('Gyro Calibrating...')
+    ACalButton['state'] = 'disable'
+    GCalButton['state'] = 'disable'
+    ACalButton['text'] = '0%'
+    GCalButton['text'] = 'Gyro Calibrating...'
+    rate = 0
+    bufX = []
+    bufY = []
+    bufZ = []
+    
+    #100s
+    while rate < 100:
+        rate += 2
+        
+        for ii in range(100):
+            bufX.append(GyXq[-1]) 
+            bufY.append(GyYq[-1]) 
+            bufZ.append(GyZq[-1]) 
+            time.sleep(0.01) 
+
+        ACalButton['text'] = str(rate)+' %'
+    
+        if Cal_Thread_Enable == 0:
+            return
+    #去除异常值
+    bufX = DP.Dataculling(bufX)
+    bufY = DP.Dataculling(bufY)
+    bufZ = DP.Dataculling(bufZ)
+    
+    #平均一下
+    GyXc = -int(np.average(bufX))
+    GyYc = -int(np.average(bufY))
+    GyZc = -int(np.average(bufZ))
+    
+    print('Gyro Corret Value:')
+    print('X =',GyXc,' Y =',GyYc,' Z =',GyZc)
+
+    ACalButton['state'] = 'disable'
+    GCalButton['state'] = 'normal'
+    ACalButton['text'] = 'Gyro Static Correct Value [X,Y,X]' + str(GyXc) +' '+ str(GyYc) +' '+ str(GyZc)
+    GCalButton['text'] = 'Apply'
+    tkinter.messagebox.showinfo('Info','GY-H1 Gyro静态校准值计算完成!!\n按Apply写入校准,关闭窗口丢弃值')
+    Cal_Thread_Enable = 2
+    return
+
+def GyroWrite():
+
+    time.sleep(0.1)
+    #关闭对外数据输出
+    TxBuf = CMDPack(order='00',data='03')
+    COM.write(TxBuf)
+    time.sleep(0.1)
+
+    if IsGYH1Connected() == False:
+        tkinter.messagebox.showinfo('Error','GY-H1 Disconneted!!')
+        print("GY-H1 Calibration Failed!!\n")
+        GUI.destroy()
+        return
+    else:
+        time.sleep(0.1)    
+        #进入写入状态
+        TxBuf = CMDPack(order='01',data='00')
+        COM.write(TxBuf)
+        time.sleep(0.1)
+        #写入三轴数据
+        buf = bytes.hex(GyXc.to_bytes(2,byteorder='big',signed=True))
+        TxBuf = CMDPack(order='10',data=buf[0:2])
+        COM.write(TxBuf)
+        time.sleep(0.1)
+        TxBuf = CMDPack(order='11',data=buf[2:4])
+        COM.write(TxBuf)
+        time.sleep(0.1)
+        #写入三轴数据
+        buf = bytes.hex(GyYc.to_bytes(2,byteorder='big',signed=True))
+        TxBuf = CMDPack(order='12',data=buf[0:2])
+        COM.write(TxBuf)
+        time.sleep(0.1)
+        TxBuf = CMDPack(order='13',data=buf[2:4])
+        COM.write(TxBuf)
+        time.sleep(0.1)
+        #写入三轴数据
+        buf = bytes.hex(GyZc.to_bytes(2,byteorder='big',signed=True))
+        TxBuf = CMDPack(order='14',data=buf[0:2])
+        COM.write(TxBuf)
+        time.sleep(0.1)
+        TxBuf = CMDPack(order='15',data=buf[2:4])
+        COM.write(TxBuf)
+        time.sleep(0.1)
+
+        #退出写入状态
+        if IsGYH1Connected() == False:
+            tkinter.messagebox.showinfo('Error','GY-H1 Calibratiion Failed!!')
+            print("GY-H1 Gyro Correct Value Write Failed!!\n")
+        else:
+            tkinter.messagebox.showinfo('Info','GY-H1 Calibratiion Succeed!!')
+            print("GY-H1 Calibrating Succeed!!\n")
+        
+        time.sleep(0.01)
+        TxBuf = CMDPack(order='01',data='01')
+        COM.write(TxBuf)
+        time.sleep(0.01)
+        GUI.destroy()
+        time.sleep(1)
+
+
+def GyroKeyHandel():
+    global Cal_Thread_Enable
+    global Data_Thread_Enable
+    global GyXc
+    global GyYc
+    global GyZc
+    #选定要执行的校准
+    if Cal_Thread_Enable == 0:
+        Cal_Thread_Enable = 1
+        ACalButton['state'] = 'disable'
+        GCalButton['state'] = 'normal'
+        ACalButton['bg'] = 'white'
+        GCalButton['bg'] = 'DarkGreen'
+        GCalButton['fg'] = 'Gold'
+        GCalButton['text'] = 'Press to start calibrate Gyro'
+        tkinter.messagebox.showinfo('Info','请保证GY-H1静止,校准过程持续30s')
+    #开始执行校准
+    elif Cal_Thread_Enable == 1:
+        threading.Thread(target=GyroCaliThread).start()
+    #执行写入程序
+    elif Cal_Thread_Enable == 2:
+        Data_Thread_Enable = 0
+        threading.Thread(target=GyroWrite).start()
+        GCalButton['state'] = 'disable'
+
+#GY-H1 Calibrate
+def GYCalFunGUI():
+    global GUI
+    global Data_Thread_Enable
+    global Cal_Thread_Enable
+    global ConnectButton
+    global ACalButton
+    global GCalButton
+    global MOD_Cal
+    global UI_t
+    global GyXq
+    global GyYq
+    global GyZq
+    global AcXq
+    global AcYq
+    global AcZq
+
+    global UI_Gyro_Line
+    global UI_Accel_Line
+
+    global aG
+    global aA
+
+    UI_t = deque(maxlen=1500)
+    GyXq = deque(maxlen=1500)
+    GyYq = deque(maxlen=1500)
+    GyZq = deque(maxlen=1500)
+    AcXq = deque(maxlen=1500)
+    AcYq = deque(maxlen=1500)
+    AcZq = deque(maxlen=1500)
+
+
+    GUI = tkinter.Tk()
+    GUI.title('GY-H1 Calibration')
+    GUI.geometry('650x750')
+
+    figGyro = plt.Figure()
+    figGyro.set_size_inches(8,3)
+    canvasGyro = FigureCanvasTkAgg(figGyro, master=GUI)
+    aG = figGyro.add_subplot(111)
+    aG.set_title('Gyro')
+
+    UI_Gyro_Line = aG.plot([],[],'olive',[],[],'teal',[],[],'orchid')
+    figGyro.legend(handles=[UI_Gyro_Line[0],UI_Gyro_Line[1],UI_Gyro_Line[2]],labels=['X','Y','Z'])
+
+    aniG = animation.FuncAnimation(figGyro, Gyro_Update, np.arange(0, 1500), interval=3, blit=False)
+
+    figAccel = plt.Figure()
+    figAccel.set_size_inches(8,3)
+    canvasAccel = FigureCanvasTkAgg(figAccel, master=GUI)
+    aA = figAccel.add_subplot(111)
+    aA.set_title('Accel')
+    UI_Accel_Line = aA.plot([],[],'olive',[],[],'teal',[],[],'orchid')
+    figAccel.legend(handles=[UI_Accel_Line[0],UI_Accel_Line[1],UI_Accel_Line[2]],labels=['X','Y','Z'])
+    aniA = animation.FuncAnimation(figAccel, Accel_Update, np.arange(0, 1500), interval=3, blit=False)
+
+    #输出数据设置栏
+    MOD_Cal = ttk.Combobox(GUI,width='20',justify='center',font=('Arial', 14))
+    MOD_Cal["value"]=("Check Raw data","Check Processed data")
+    MOD_Cal.current(0)
+    MOD_Cal.pack(side='top',fill='x')
+
+    #连接按钮
+    ConnectButton = tkinter.Button(GUI,bg='DeepSkyBlue',fg='white',relief='groove',state='normal',text='Ready to Calibrate?',font=('Arial', 16),command=ConnecWarning)
+    ConnectButton.pack(side='top',fill='x')
+    
+
+    
+    #实时数据显示
+    canvasGyro.get_tk_widget().pack()
+    canvasAccel.get_tk_widget().pack()
+
+    #加速度校准
+    ACalButton = tkinter.Button(GUI,bg='PaleTurquoise',fg='Gold',relief='groove',state='disable',text='Accel Calibrate',font=('Arial', 16),command=AccelKeyHandel)
+    ACalButton.pack(side='bottom',fill='x')
+    #陀螺仪校准
+    GCalButton = tkinter.Button(GUI,bg='PaleTurquoise',fg='Gold',relief='groove',state='disable',text='Gyro Calibrate',font=('Arial', 16),command=GyroKeyHandel)
+    GCalButton.pack(side='bottom',fill='x')
+
+    Cal_Thread_Enable = 0
+
+    GUI.mainloop()
+    
+    Cal_Thread_Enable = 0
+    Data_Thread_Enable = 0
+
+    time.sleep(1)
 
 ###
 ### Function Begin Here
 ###
+
 print("-"*50)
-print("\n\n\t\tGY-H1 Upper V0.6\n")
+print("\n\n\t\tGY-H1 Upper V0.7\n")
 print("\t\tDesigned by qianwan\n")
 print("\t\t2023-03-22\n\n")
 print("-"*50)
+
 
 while True:
     #连接芯片
@@ -312,10 +789,8 @@ while True:
             GYSetFunGUI()
         case 2:
             print('Calibrate Running...\n')
-            time.sleep(0.01)
-            RawDataRec()
-            
-    
+            GYCalFunGUI()
+
     time.sleep(0.01)
     
     #特殊情况下重启GY-H1
@@ -330,29 +805,5 @@ while True:
     print('*'*50)
     time.sleep(0.5)
 
-    
-
-# SerialReadThread = threading.Thread(target=SerialRead)
-# SerialWriteThread = threading.Thread(target=SerialWrite)
-# SerialReadThread.start()
-# SerialWriteThread.start()
-
 while(True):
     time.sleep(1)
-
-#com4.close()
-# #设置串口号COM3，波特率115200，连接超时0.05s
-# print(com3)
-# print(com3.name) #设备名称
-# print(com3.port) #设备名
-# print(com3.baudrate) #波特率
-# print(com3.bytesize) #字节大小
-# print(com3.parity) #校验位N－无校验，E－偶校验，O－奇校验
-# print(com3.stopbits) #停止位
-# print(com3.timeout) #读超时设置
-# print(com3.writeTimeout) #写超时
-# print(com3.xonxoff) #软件流控
-# print(com3.rtscts) #硬件流控
-# print(com3.dsrdtr) #硬件流控
-# print(com3.interCharTimeout) #字符间隔超时
-# 输出串口信息

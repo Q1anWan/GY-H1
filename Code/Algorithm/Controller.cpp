@@ -323,10 +323,10 @@ void ConfigRead(void)
 	qCtr->ODR 		= (uint8_t)((buf[0]&(uint32_t)0x00FF0000U)>>16);
 	qCtr->OutPutMode= (uint8_t)((buf[0]&(uint32_t)0xFF000000U)>>24);
 	
-	IMU->GyroCal[0] = (int16_t)(buf[1]&0xFFFF);
-	IMU->GyroCal[1] = (int16_t)(buf[1]>>16);
-	IMU->GyroCal[2] = (int16_t)(buf[2]&0xFFFF);
-	IMU->AccelCal[0] = (int16_t)(buf[2]>>16);
-	IMU->AccelCal[1] = (int16_t)(buf[2]&0xFFFF);
-	IMU->AccelCal[2] = (int16_t)(buf[2]>>16);
+	IMU->GyroCal[0] = (int16_t)(buf[1]>>16);
+	IMU->GyroCal[1] = (int16_t)(buf[1]&0xFFFF);
+	IMU->GyroCal[2] = (int16_t)(buf[2]>>16);
+	IMU->AccelCal[0] = (int16_t)(buf[2]&0xFFFF);
+	IMU->AccelCal[1] = (int16_t)(buf[3]>>16);
+	IMU->AccelCal[2] = (int16_t)(buf[3]&0xFFFF);
 }	
