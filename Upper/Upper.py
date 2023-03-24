@@ -15,6 +15,7 @@ from matplotlib.figure import Figure
 from collections import deque
 import numpy as np
 from math import *
+from   scipy  import   signal
 
 import crcmod
 import DataProcess as DP
@@ -534,15 +535,18 @@ def GyroCaliThread():
     bufY = []
     bufZ = []
     
-    #100s
+    #等待桌面稳定
+    time.sleep(3)
+
+    #50s 采样率200Hz 
     while rate < 100:
-        rate += 2
+        rate += 1
         
         for ii in range(100):
             bufX.append(IMU_Data.GyXq[-1]) 
             bufY.append(IMU_Data.GyYq[-1]) 
             bufZ.append(IMU_Data.GyZq[-1]) 
-            time.sleep(0.01) 
+            time.sleep(0.005) 
 
         ACalButton['text'] = str(rate)+' %'
     
@@ -553,17 +557,26 @@ def GyroCaliThread():
     bufY = DP.Dataculling(bufY)
     bufZ = DP.Dataculling(bufZ)
     
+    #1阶低通 200Hz采样率 截至频率1Hz 
+    b,a = signal.butter(1,0.01,'lowpass')
+    bufX = signal.filtfilt(b,a,bufX)
+    b,a = signal.butter(1,0.01,'lowpass')
+    bufY = signal.filtfilt(b,a,bufY)
+    b,a = signal.butter(1,0.01,'lowpass')
+    bufZ = signal.filtfilt(b,a,bufZ)
+    
     #平均一下
     IMU_Calib.GyXc = -int(np.average(bufX))
     IMU_Calib.GyYc = -int(np.average(bufY))
     IMU_Calib.GyZc = -int(np.average(bufZ))
     
     print('Gyro Corret Value:')
-    print('X =',IMU_Calib.GyXc,' Y =',IMU_Calib.GyYc,' Z =',IMU_Calib.GyZc)
-
+    print('Correct [X,Y,Z] = [',IMU_Calib.GyXc,', ',IMU_Calib.GyYc,', ',IMU_Calib.GyZc,']')
+    print('STD [X,Y,Z] = [',np.std(IMU_Calib.GyXc,ddof=0),', ',np.std(IMU_Calib.GyYc,ddof=0),', ',np.std(IMU_Calib.GyZc,ddof=0),']')
+    
     ACalButton['state'] = 'disable'
     GCalButton['state'] = 'normal'
-    ACalButton['text'] = 'Gyro Static Correct Value [X,Y,X]' + str(IMU_Calib.GyXc) +' '+ str(IMU_Calib.GyYc) +' '+ str(IMU_Calib.GyZc)
+    ACalButton['text'] = 'Gyro Static Correct Value [X,Y,X] = [' + str(IMU_Calib.GyXc) +', '+ str(IMU_Calib.GyYc) +', '+ str(IMU_Calib.GyZc)+']'
     GCalButton['text'] = 'Apply'
     tkinter.messagebox.showinfo('Info','GY-H1 Gyro静态校准值计算完成!!\n按Apply写入校准,关闭窗口丢弃值')
     
@@ -734,7 +747,7 @@ def GYCalFunGUI():
     IMU_Calib.Cal_Thread_Enable = 0
     IMU_Data.Data_Thread_Enable = 0
 
-    time.sleep(1)
+    time.sleep(2)
 
 ###
 ### Function Begin Here
