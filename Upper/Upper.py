@@ -79,6 +79,11 @@ class cIMU_Data:
         self.AcZq.clear()
         self.Data_Thread_Enable = 0
 
+COM = cCOM()
+IMU_Set = cIMU_Set()
+IMU_Calib = cIMU_Calib()
+IMU_Data = cIMU_Data()
+
 #输入Byte 返回Byte
 def CRC8(bytes):
     crc_class = crcmod.predefined.Crc('crc-8-maxim')
@@ -95,10 +100,11 @@ def portIsUsable(portName):
 def IsGYH1Connected():
     try:
         #发送空白信息
+        time.sleep(0.01)
         COM.COM_handel.flushInput()
         TxBuf = CMDPack(order='FF',data='FF')
         COM.write(TxBuf)
-        time.sleep(0.001)
+        time.sleep(0.01)
         count=COM.COM_handel.inWaiting()
         #读取有无空白信息
         Rec = COM.COM_handel.read(count)
@@ -156,7 +162,7 @@ def COMConnect():
         time.sleep(1)
         #重新连接设备
         if portIsUsable(COM.port_list[COM.sel_i].name) == True:
-            COM.COM_handelCOM = serial.Serial(COM.port_list[COM.sel_i].name, 512000, timeout = 0.1)
+            COM.COM_handel = serial.Serial(COM.port_list[COM.sel_i].name, 512000, timeout = 0.1)
         
         #关闭串口对外信息发送
         TxBuf = CMDPack(order='00',data='03')
@@ -253,7 +259,7 @@ def SettingApply():
                 TxBuf = CMDPack(order='04',data='08')
                 COM.write(TxBuf)
 
-        time.sleep(0.01)
+        time.sleep(0.1)
 
         if IsGYH1Connected() == False:
             tkinter.messagebox.showinfo('Error','GY-H1 Config Failed!!')
@@ -560,12 +566,29 @@ def GyroCaliThread():
     ACalButton['text'] = 'Gyro Static Correct Value [X,Y,X]' + str(IMU_Calib.GyXc) +' '+ str(IMU_Calib.GyYc) +' '+ str(IMU_Calib.GyZc)
     GCalButton['text'] = 'Apply'
     tkinter.messagebox.showinfo('Info','GY-H1 Gyro静态校准值计算完成!!\n按Apply写入校准,关闭窗口丢弃值')
+    
+    #切换标志位
     IMU_Calib.Cal_Thread_Enable = 2
     return
 
 def GyroWrite():
 
     time.sleep(0.1)
+    #重启GY-H1
+    TxBuf = CMDPack(order='00',data='00')
+    COM.write(TxBuf)
+    time.sleep(0.1)
+    COM.COM_handel.close()
+    time.sleep(1)
+    
+    #重新连接设备
+    if portIsUsable(COM.port_list[COM.sel_i].name) == False:
+        tkinter.messagebox.showinfo('Error','GY-H1连接异常!!')
+        print('GY-H1连接异常!!')
+        GUI.destroy()
+        return False
+    COM.COM_handel = serial.Serial(COM.port_list[COM.sel_i].name, 512000, timeout = 0.1)
+    
     #关闭对外数据输出
     TxBuf = CMDPack(order='00',data='03')
     COM.write(TxBuf)
@@ -615,12 +638,12 @@ def GyroWrite():
             tkinter.messagebox.showinfo('Info','GY-H1 Calibratiion Succeed!!')
             print("GY-H1 Calibrating Succeed!!\n")
         
-        time.sleep(0.01)
         TxBuf = CMDPack(order='01',data='01')
         COM.write(TxBuf)
-        time.sleep(0.01)
+
+        time.sleep(0.5)
+
         GUI.destroy()
-        time.sleep(1)
 
 
 def GyroKeyHandel():
@@ -640,6 +663,8 @@ def GyroKeyHandel():
         threading.Thread(target=GyroCaliThread).start()
     #执行写入程序
     elif IMU_Calib.Cal_Thread_Enable == 2:
+        #关闭数据获取线程
+        IMU_Data.Data_Thread_Enable = 0
         threading.Thread(target=GyroWrite).start()
         GCalButton['state'] = 'disable'
 
@@ -721,10 +746,7 @@ print("\t\tDesigned by qianwan\n")
 print("\t\t2023-03-22\n\n")
 print("-"*50)
 
-COM = cCOM()
-IMU_Set = cIMU_Set()
-IMU_Calib = cIMU_Calib()
-IMU_Data = cIMU_Data()
+
 
 while True:
     #连接芯片

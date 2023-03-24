@@ -62,9 +62,11 @@ extern rt_thread_t DataOutput_thread;
 
 extern void IMUThread(void* parameter);
 extern void IMU2Thread(void* parameter);
+extern void IMUAHRSThread(void* parameter);
 extern void IMUHeatThread(void* parameter);
 extern rt_thread_t IMU_thread;
 extern rt_thread_t IMUSlaver_thread;
+extern rt_thread_t IMUAHRS_thread;
 extern rt_thread_t IMUHeat_thread;
 extern rt_sem_t IMU_INT1Sem;	
 extern rt_sem_t IMU_INT2Sem;
@@ -80,7 +82,8 @@ int main(void)
 										RT_NULL,            /* 线程入口函数参数 */
 										256,                /* 线程栈大小 */
 										16,                 /* 线程的优先级 */
-										20);                /* 线程时间片 */	
+										20);                /* 线程时间片 */
+	
 	LEDCAN_thread =                          				/* 线程控制块指针 */
 	rt_thread_create( 					"LEDCAN",           /* 线程名字 */
 										LEDCANThread,	    /* 线程入口函数 */
@@ -90,7 +93,7 @@ int main(void)
 										20);                /* 线程时间片 */	
 	
 	UART_thread =                          					/* 线程控制块指针 */
-	rt_thread_create( 					"UART",             /* 线程名字 */
+	rt_thread_create( 					"UARTRead",         /* 线程名字 */
 										UARTThread,   		/* 线程入口函数 */
 										RT_NULL,            /* 线程入口函数参数 */
 										768,                /* 线程栈大小 */
@@ -126,7 +129,7 @@ int main(void)
 										
 
 	IMU_thread =                          					/* 线程控制块指针 */
-	rt_thread_create( 					"IMU",              /* 线程名字 */
+	rt_thread_create( 					"IMURead",          /* 线程名字 */
 										IMUThread,   		/* 线程入口函数 */
 										RT_NULL,            /* 线程入口函数参数 */
 										512,                /* 线程栈大小 */
@@ -138,8 +141,16 @@ int main(void)
 										IMU2Thread,   		/* 线程入口函数 */
 										RT_NULL,            /* 线程入口函数参数 */
 										256,                /* 线程栈大小 */
-										1,                  /* 线程的优先级 */
+										2,                  /* 线程的优先级 */
 										1);                 /* 线程时间片 */
+
+	IMUAHRS_thread =                          				/* 线程控制块指针 */
+	rt_thread_create( 					"IMUAHRS",        	/* 线程名字 */
+										IMUAHRSThread,   	/* 线程入口函数 */
+										RT_NULL,            /* 线程入口函数参数 */
+										512,                /* 线程栈大小 */
+										1,                  /* 线程的优先级 */
+										5);                 /* 线程时间片 */
 										
 	IMUHeat_thread =                          				/* 线程控制块指针 */
 	rt_thread_create( 					"IMUHeat",        	/* 线程名字 */
@@ -194,6 +205,7 @@ int main(void)
 	rt_kprintf("\n\nUART_thread  = %d\n",UART_thread);rt_thread_delay(2);				
 	#endif
 	rt_thread_startup(IMU_thread);
+	rt_thread_startup(IMUAHRS_thread);
 	rt_thread_startup(IMUHeat_thread);
 	rt_thread_startup(Config_thread);
 	rt_thread_delay(5);
