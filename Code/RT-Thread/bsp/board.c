@@ -266,7 +266,7 @@ static void Timer_Init(void)
 	timer_deinit(TIMER2);
 
     /* TIMER2 configuration */
-    timer_initpara.prescaler         = 287;
+    timer_initpara.prescaler         = 13;
     timer_initpara.alignedmode       = TIMER_COUNTER_EDGE;
     timer_initpara.counterdirection  = TIMER_COUNTER_UP;
     timer_initpara.period            = 999;

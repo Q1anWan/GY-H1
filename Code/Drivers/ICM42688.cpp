@@ -76,6 +76,8 @@ void cICM42688::ReadTem(void)
 	this->ReadReg(0x1D,buf,2);
 	
 	raw_tmp = (int16_t)((buf[0]<<8)|(buf[1]));
-	this->Temperature = ((float)raw_tmp/132.48f)+25.0f;
+	//½ØÖ¹ÆµÂÊ:100Hz
+	//this->Temperature = 0.1*(((float)raw_tmp/132.48f)+25.0f) + 0.9*this->Temperature;
+	this->Temperature = ((float)raw_tmp/1324.8f)+ 2.5f + 0.9*this->Temperature;
 }
 

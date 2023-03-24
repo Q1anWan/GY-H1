@@ -24,12 +24,58 @@ global GUI
 
 #通讯类 实现串口
 class cCOM:
+   
     def __init__(self):
         self.COM_handel = serial.Serial()
         self.sel_i = 0
         self.port_list = list()
+   
     def write(self,data):
         self.COM_handel.write(data)
+   
+    def IsGYH1Connected(self):
+        try:
+            #发送空白信息
+            time.sleep(0.01)
+            self.COM_handel.flushInput()
+            TxBuf = CMDPack(order='FF',data='FF')
+            COM.write(TxBuf)
+            time.sleep(0.01)
+            count=COM.COM_handel.inWaiting()
+            #读取有无空白信息
+            Rec = COM.COM_handel.read(count)
+            if Rec == TxBuf:
+                return True
+            else:
+                return False
+        except:
+            return False
+    
+    def connect(self,isRST='none'):
+        self.COM_handel.close()
+        time.sleep(0.01)
+        if isRST == 'none':
+            try:
+                self.COM_handel = serial.Serial(self.port_list[self.sel_i].name, 512000, timeout = 0.1)
+                return True
+            except:
+                return False
+        elif isRST == 'rst':
+            try:
+                self.COM_handel = serial.Serial(self.port_list[self.sel_i].name, 512000, timeout = 0.1)
+                TxBuf = CMDPack(order='00',data='00')
+                self.write(TxBuf)
+                self.COM_handel.close()
+                time.sleep(1)
+                self.COM_handel = serial.Serial(self.port_list[self.sel_i].name, 512000, timeout = 0.1)
+                #关闭串口对外信息发送
+                TxBuf = CMDPack(order='00',data='03')
+                COM.write(TxBuf)
+                time.sleep(0.01)
+                self.COM_handel.flushInput()
+                return True
+            except:
+                return False
 
 #设置类 四个按钮后面加
 class cIMU_Set:
@@ -97,24 +143,7 @@ def portIsUsable(portName):
        return True
     except:
        return False
-    
-def IsGYH1Connected():
-    try:
-        #发送空白信息
-        time.sleep(0.01)
-        COM.COM_handel.flushInput()
-        TxBuf = CMDPack(order='FF',data='FF')
-        COM.write(TxBuf)
-        time.sleep(0.01)
-        count=COM.COM_handel.inWaiting()
-        #读取有无空白信息
-        Rec = COM.COM_handel.read(count)
-        if Rec == TxBuf:
-            return True
-        else:
-            return False
-    except:
-       return False
+
     
 #给出控制符和命令数据，自动补齐包头和CRC8
 def CMDPack(order,data):
@@ -156,22 +185,10 @@ def COMConnect():
             return False
         
         print('连接设备中...')
-        COM.COM_handel = serial.Serial(COM.port_list[COM.sel_i].name, 512000, timeout = 0.1)
-        #重启GY-H1
-        TxBuf = CMDPack(order='00',data='00')
-        COM.write(TxBuf)
-        time.sleep(1)
-        #重新连接设备
-        if portIsUsable(COM.port_list[COM.sel_i].name) == True:
-            COM.COM_handel = serial.Serial(COM.port_list[COM.sel_i].name, 512000, timeout = 0.1)
+        #连接设备并重启
+        COM.connect('rst')
         
-        #关闭串口对外信息发送
-        TxBuf = CMDPack(order='00',data='03')
-        COM.write(TxBuf)
-        time.sleep(0.01)
-
-        # Rec = binascii.b2a_hex(Rec)
-        if IsGYH1Connected():
+        if COM.IsGYH1Connected():
             print('\nGY-H1 已连接\n')
             return True
         else:
@@ -184,8 +201,12 @@ def SettingApply():
     global GUI
 
     time.sleep(0.01)
-    
-    if IsGYH1Connected() == False:
+    #重置连接   
+    COM.connect('rst')
+
+    time.sleep(0.01)
+
+    if COM.IsGYH1Connected() == False:
         tkinter.messagebox.showinfo('Error','GY-H1 Disconneted!!')
         print("GY-H1 Setting Failed!!\n")
         GUI.destroy()
@@ -193,7 +214,7 @@ def SettingApply():
     else:
         TxBuf = CMDPack(order='01',data='00')
         COM.write(TxBuf)
-        time.sleep(0.01)
+        time.sleep(0.1)
 
         match IMU_Set.OutMode_CB.get():
             case "USB-C":
@@ -202,7 +223,7 @@ def SettingApply():
             case "CAN":
                 TxBuf = CMDPack(order='02',data='01')
                 COM.write(TxBuf)
-        time.sleep(0.01)
+        time.sleep(0.1)
 
         match IMU_Set.ODR_CB.get():
             case "1000Hz":
@@ -217,7 +238,7 @@ def SettingApply():
             case "125Hz":
                 TxBuf = CMDPack(order='03',data='03')
                 COM.write(TxBuf)
-        time.sleep(0.01)
+        time.sleep(0.1)
         
         match IMU_Set.OutFormat_CB.get():
             case "Quaternion":
@@ -229,7 +250,7 @@ def SettingApply():
             case "Processed data":
                 TxBuf = CMDPack(order='02',data='04')
                 COM.write(TxBuf)
-        time.sleep(0.01)
+        time.sleep(0.1)
 
         match IMU_Set.ID_CB.get():
             case "1":
@@ -259,20 +280,13 @@ def SettingApply():
             case "9":
                 TxBuf = CMDPack(order='04',data='08')
                 COM.write(TxBuf)
-
         time.sleep(0.1)
-
-        if IsGYH1Connected() == False:
-            tkinter.messagebox.showinfo('Error','GY-H1 Config Failed!!')
-            print("GY-H1 Setting Failed!!\n")
-        else:
-            tkinter.messagebox.showinfo('Info','GY-H1 Configuration Succeed!!')
-            print("GY-H1 Setting Succeed!!\n")
         
-        time.sleep(0.01)
         TxBuf = CMDPack(order='01',data='01')
         COM.write(TxBuf)
-        time.sleep(0.01)
+
+        tkinter.messagebox.showinfo('Info','GY-H1 Configuration Succeed!!')
+        print("GY-H1 Setting Succeed!!\n")
         GUI.destroy()
 
 #GY-H1 Setting
@@ -361,14 +375,17 @@ def CalConRec():
         ACalButton['bg'] = 'white'
         GCalButton['bg'] = 'white'
 
+    #重置连接
+    COM.connect()
+
     #检验设备连接状态
-    if IsGYH1Connected() == False:
+    if COM.IsGYH1Connected() == False:
         tkinter.messagebox.showinfo('Error','GY-H1连接异常!!')
         GUI.destroy()
         return False
     
     #进入配置模式
-    time.sleep(0.1)
+    time.sleep(0.5)
     TxBuf = CMDPack(order='01',data='00')
     COM.write(TxBuf)
     time.sleep(0.1)
@@ -390,14 +407,15 @@ def CalConRec():
     COM.COM_handel.close()
     time.sleep(0.5)
     
+    COM.connect('rst')
     #重新连接设备
-    if portIsUsable(COM.port_list[COM.sel_i].name) == False:
+    if COM.IsGYH1Connected() == False:
         tkinter.messagebox.showinfo('Error','GY-H1连接异常!!')
         GUI.destroy()
         print('GY-H1连接异常!!')
         return False
-    COM.COM_handel = serial.Serial(COM.port_list[COM.sel_i].name, 512000, timeout = 0.1)
     
+
     #启动接收进程
     IMU_Data.Data_Thread_Enable = 1
     thread_RawDataRec = threading.Thread(target=RawDataRec)
@@ -405,10 +423,10 @@ def CalConRec():
 
 def RawDataRec():
     
-    #确保开启数据接收
+    #开启数据接收
     Txbuf = CMDPack(order='00',data='02')
     COM.write(Txbuf)
-
+    time.sleep(1)
     tbuf = 0
     while True:
         RecBuf = COM.COM_handel.read(14)
@@ -531,12 +549,12 @@ def GyroCaliThread():
     ACalButton['text'] = '0%'
     GCalButton['text'] = 'Gyro Calibrating...'
     rate = 0
-    bufX = []
-    bufY = []
-    bufZ = []
+    bufX = list()
+    bufY = list()
+    bufZ = list()
     
     #等待桌面稳定
-    time.sleep(3)
+    time.sleep(2)
 
     #50s 采样率200Hz 
     while rate < 100:
@@ -572,7 +590,7 @@ def GyroCaliThread():
     
     print('Gyro Corret Value:')
     print('Correct [X,Y,Z] = [',IMU_Calib.GyXc,', ',IMU_Calib.GyYc,', ',IMU_Calib.GyZc,']')
-    print('STD [X,Y,Z] = [',np.std(IMU_Calib.GyXc,ddof=0),', ',np.std(IMU_Calib.GyYc,ddof=0),', ',np.std(IMU_Calib.GyZc,ddof=0),']')
+    print('STD [X,Y,Z] = [',np.std(bufX,ddof=0),', ',np.std(bufY,ddof=0),', ',np.std(bufZ,ddof=0),']')
     
     ACalButton['state'] = 'disable'
     GCalButton['state'] = 'normal'
@@ -587,27 +605,11 @@ def GyroCaliThread():
 def GyroWrite():
 
     time.sleep(0.1)
-    #重启GY-H1
-    TxBuf = CMDPack(order='00',data='00')
-    COM.write(TxBuf)
-    time.sleep(0.1)
-    COM.COM_handel.close()
-    time.sleep(1)
+    #重置连接
+    COM.connect('rst')
     
-    #重新连接设备
-    if portIsUsable(COM.port_list[COM.sel_i].name) == False:
-        tkinter.messagebox.showinfo('Error','GY-H1连接异常!!')
-        print('GY-H1连接异常!!')
-        GUI.destroy()
-        return False
-    COM.COM_handel = serial.Serial(COM.port_list[COM.sel_i].name, 512000, timeout = 0.1)
-    
-    #关闭对外数据输出
-    TxBuf = CMDPack(order='00',data='03')
-    COM.write(TxBuf)
-    time.sleep(0.1)
-
-    if IsGYH1Connected() == False:
+    #确认连接状态
+    if COM.IsGYH1Connected() == False:
         tkinter.messagebox.showinfo('Error','GY-H1 Disconneted!!')
         print("GY-H1 Calibration Failed!!\n")
         GUI.destroy()
@@ -644,7 +646,7 @@ def GyroWrite():
         time.sleep(0.1)
 
         #退出写入状态
-        if IsGYH1Connected() == False:
+        if COM.IsGYH1Connected() == False:
             tkinter.messagebox.showinfo('Error','GY-H1 Calibratiion Failed!!')
             print("GY-H1 Gyro Correct Value Write Failed!!\n")
         else:
