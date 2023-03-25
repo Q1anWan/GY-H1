@@ -527,13 +527,15 @@ static void Test1Thread(void* parameter)
 static void Test2Thread(void* parameter)
 {
 	rt_thread_delay(2000);
-
+	rt_tick_t ticker;
 	for(;;)
 	{	
-		Msg->Printf("GYRO=%d %d %d\n",IMU->Gyro[0],IMU->Gyro[1],IMU->Gyro[2]);rt_thread_delay(1);
-		Msg->Printf("Accel=%d %d %d\n",IMU->Accel[0],IMU->Accel[1],IMU->Accel[2]);rt_thread_delay(1);
-		Msg->Printf("Tem=%f\n\n",IMU->Temperature);//rt_thread_delay(1);
-		rt_thread_delay(18);
+		ticker = rt_tick_get();
+//		Msg->Printf("GYRO=%d %d %d\n",IMU->Gyro[0],IMU->Gyro[1],IMU->Gyro[2]);rt_thread_delay(1);
+//		Msg->Printf("Accel=%d %d %d\n",IMU->Accel[0],IMU->Accel[1],IMU->Accel[2]);rt_thread_delay(1);
+//		Msg->Printf("Tem=%f\n\n",IMU->Temperature);//rt_thread_delay(1);
+		Msg->Printf("%d %d %d %d %d %d\n",IMU->Gyro[0],IMU->Gyro[1],IMU->Gyro[2],IMU->Accel[0],IMU->Accel[1],IMU->Accel[2]);
+		rt_thread_delay_until(&ticker,2);
 	}
 }
 

@@ -20,6 +20,8 @@ from   scipy  import   signal
 import crcmod
 import DataProcess as DP
 
+import pandas as pd
+
 global GUI
 
 #通讯类 实现串口
@@ -543,7 +545,7 @@ def AccelKeyHandel():
 
 def GyroCaliThread():
 
-    print('Gyro Calibrating...')
+    print('Gyro Calibrating...\n')
     ACalButton['state'] = 'disable'
     GCalButton['state'] = 'disable'
     ACalButton['text'] = '0%'
@@ -552,9 +554,12 @@ def GyroCaliThread():
     bufX = list()
     bufY = list()
     bufZ = list()
-    
+    Ticker = list()
+    ticker_now = 0
+
     #等待桌面稳定
     time.sleep(2)
+
 
     #50s 采样率200Hz 
     while rate < 100:
@@ -563,31 +568,46 @@ def GyroCaliThread():
         for ii in range(100):
             bufX.append(IMU_Data.GyXq[-1]) 
             bufY.append(IMU_Data.GyYq[-1]) 
-            bufZ.append(IMU_Data.GyZq[-1]) 
+            bufZ.append(IMU_Data.GyZq[-1])
+            Ticker.append(ticker_now)
+            ticker_now += 0.005
             time.sleep(0.005) 
 
         ACalButton['text'] = str(rate)+' %'
     
         if IMU_Calib.Cal_Thread_Enable == 0:
             return
-    #去除异常值
-    bufX = DP.Dataculling(bufX)
-    bufY = DP.Dataculling(bufY)
-    bufZ = DP.Dataculling(bufZ)
+    
+    #去除异常值,采用插值替换方法
+    bufX_p = DP.Dataculling(data=bufX,metheod='replace')
+    bufY_p = DP.Dataculling(data=bufY,metheod='replace')
+    bufZ_p = DP.Dataculling(data=bufZ,metheod='replace')
     
     #1阶低通 200Hz采样率 截至频率1Hz 
     b,a = signal.butter(1,0.01,'lowpass')
-    bufX = signal.filtfilt(b,a,bufX)
+    bufX_p = signal.filtfilt(b,a,bufX_p)
     b,a = signal.butter(1,0.01,'lowpass')
-    bufY = signal.filtfilt(b,a,bufY)
+    bufY_p = signal.filtfilt(b,a,bufY_p)
     b,a = signal.butter(1,0.01,'lowpass')
-    bufZ = signal.filtfilt(b,a,bufZ)
+    bufZ_p = signal.filtfilt(b,a,bufZ_p)
     
-    #平均一下
-    IMU_Calib.GyXc = -int(np.average(bufX))
-    IMU_Calib.GyYc = -int(np.average(bufY))
-    IMU_Calib.GyZc = -int(np.average(bufZ))
+    #平均一下,四舍五入
+    IMU_Calib.GyXc = -round(np.average(bufX_p))
+    IMU_Calib.GyYc = -round(np.average(bufY_p))
+    IMU_Calib.GyZc = -round(np.average(bufZ_p))
     
+    try:
+        #输出用于校准的序列
+        csvbuf = {'Ticker':Ticker,'GyroXRaw':bufX,'GyroYRaw':bufY,'GyroZRaw':bufZ,'GyroXP':bufX_p,'GyroYP':bufY_p,'GyroZP':bufZ_p}
+        outbuf = pd.DataFrame(csvbuf)
+        outbuf = outbuf.set_index('Ticker')
+        t = time.localtime()
+        name = 'GyroCalibrationData'+'_'+str(t.tm_hour)+'h'+str(t.tm_min)+'min'+str(t.tm_min)+'sec.csv'
+        outbuf.to_csv(name)
+        print('Gyro校准数据已输出: '+name+'\n')
+    except:
+        print('Gyro校准数据输出异常!!')
+
     print('Gyro Corret Value:')
     print('Correct [X,Y,Z] = [',IMU_Calib.GyXc,', ',IMU_Calib.GyYc,', ',IMU_Calib.GyZc,']')
     print('STD [X,Y,Z] = [',np.std(bufX,ddof=0),', ',np.std(bufY,ddof=0),', ',np.std(bufZ,ddof=0),']')

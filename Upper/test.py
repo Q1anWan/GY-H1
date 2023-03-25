@@ -1,11 +1,19 @@
 # import time
 
 # import matplotlib.pyplot as plt
-# import numpy as np
+import numpy as np
 # import math
 
-# import DataProcess as DP
+import DataProcess as DP
 # from   scipy  import   signal
+import time
+x = [1,2,1,1,0,1,2,10,3,1,2,3,1]
+print(x)
+x = DP.Dataculling(data=x,metheod='replace')
+print(x)
+y = np.average(x)
+print(y)
+print(round(y))
 
 # x = np.arange(0,2*np.pi,0.01)
 # y = np.sin(x)
@@ -45,9 +53,31 @@
 # plt.show()
 
 
-a = 1123
-b = a.to_bytes(2,byteorder='big',signed=True)
-c = a.to_bytes(2,byteorder='little',signed=True)
-b = bytes.hex(b)
-c = bytes.hex(c)
-print(b[0:2],' ',b[2:4])
+# a = 1123
+# b = a.to_bytes(2,byteorder='big',signed=True)
+# c = a.to_bytes(2,byteorder='little',signed=True)
+# b = bytes.hex(b)
+# c = bytes.hex(c)
+# print(b[0:2],' ',b[2:4])
+
+import pandas as pd
+
+# a = open('Demo.csv','a+')
+b = list()
+c = list()
+d = list()
+e = list()
+for i in range(100):
+    b.append(i)
+    c.append(i)
+    d.append(i)
+    e.append(i)
+
+
+datas = {'ticker':e,'X':b,'Y':c,'Z':d}
+
+test = pd.DataFrame(datas)
+test = test.set_index('ticker')
+t = time.localtime()
+name = 'Demo'+'_'+str(t.tm_hour)+'h'+str(t.tm_min)+'min'+str(t.tm_min)+'sec.csv'
+test.to_csv(name)
