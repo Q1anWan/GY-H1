@@ -1,3 +1,12 @@
+/*********************************************************************************
+  *FileName:		ICM42688.cpp
+  *Author:  		qianwan
+  *Detail: 			ICM42688-P驱动
+  
+  *Version:  		1.0
+  *Date:  			2023/03/10
+  *Describe:		新建项目
+**********************************************************************************/
 #include "ICM42688.h"
 uint8_t cICM42688::ReadReg(uint8_t Reg)
 {
@@ -76,7 +85,7 @@ void cICM42688::ReadTem(void)
 	this->ReadReg(0x1D,buf,2);
 	
 	raw_tmp = (int16_t)((buf[0]<<8)|(buf[1]));
-	//��ֹƵ��:100Hz
+	//低通滤波器截止频率:100Hz
 	//this->Temperature = 0.1*(((float)raw_tmp/132.48f)+25.0f) + 0.9*this->Temperature;
 	this->Temperature = ((float)raw_tmp/1324.8f)+ 2.5f + 0.9*this->Temperature;
 }

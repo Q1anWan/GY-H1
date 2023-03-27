@@ -591,10 +591,11 @@ def GyroCaliThread():
     b,a = signal.butter(1,0.01,'lowpass')
     bufZ_p = signal.filtfilt(b,a,bufZ_p)
     
-    #平均一下,四舍五入
-    IMU_Calib.GyXc = -round(np.average(bufX_p))
-    IMU_Calib.GyYc = -round(np.average(bufY_p))
-    IMU_Calib.GyZc = -round(np.average(bufZ_p))
+  
+    #平均一下,四舍五入,截去前2%的数据
+    IMU_Calib.GyXc = -round(np.average(bufX_p[int(len(bufX_p)*0.02):-1]))
+    IMU_Calib.GyYc = -round(np.average(bufY_p[int(len(bufY_p)*0.02):-1]))
+    IMU_Calib.GyZc = -round(np.average(bufZ_p[int(len(bufZ_p)*0.02):-1]))
     
     try:
         #输出用于校准的序列
@@ -602,7 +603,7 @@ def GyroCaliThread():
         outbuf = pd.DataFrame(csvbuf)
         outbuf = outbuf.set_index('Ticker')
         t = time.localtime()
-        name = 'GyroCalibrationData'+'_'+str(t.tm_hour)+'h'+str(t.tm_min)+'min'+str(t.tm_min)+'sec.csv'
+        name = 'GyroCalibrationData'+'_'+str(t.tm_hour)+'H'+str(t.tm_min)+'M'+str(t.tm_min)+'S.csv'
         outbuf.to_csv(name)
         print('Gyro校准数据已输出: '+name+'\n')
     except:

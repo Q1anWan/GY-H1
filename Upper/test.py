@@ -11,6 +11,10 @@ x = [1,2,1,1,0,1,2,10,3,1,2,3,1]
 print(x)
 x = DP.Dataculling(data=x,metheod='replace')
 print(x)
+x = x[int(len(x)*0.05):-1]
+print(x)
+x[0:3] = 0
+print(x)
 y = np.average(x)
 print(y)
 print(round(y))

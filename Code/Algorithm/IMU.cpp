@@ -12,14 +12,26 @@ rt_thread_t IMUHeat_thread = RT_NULL;
 rt_sem_t IMU_INT1Sem = RT_NULL;	
 rt_sem_t IMU_INT2Sem = RT_NULL;
 
+static void IMU_PreInit();
 static void IMU_Init();
+
 void IMUThread(void* parameter)
 {
 	IMU = new cIMU();
 	uint8_t Test;
 	IMU->SPI_Init(SPI0,GPIOB,GPIO_PIN_0);
-	IMU_Init();
-
+	IMU_PreInit();
+	
+	while(IMU->Temperature<40.5f)
+	{
+		//50Hz温度读取
+		IMU->ReadTem();
+		rt_thread_delay(20);
+	}
+	
+	IMU_Init();//预热完成后再正初始化
+	qCtr->TemperatureOK=1;
+	
 	for(;;)
 	{
 		rt_sem_take(IMU_INT1Sem,RT_WAITING_FOREVER);
@@ -52,7 +64,9 @@ void IMUAHRSThread(void* parameter)
 {
 	rt_tick_t ticker;
 	/*等待温度补偿OK*/
-	while(!qCtr->TemperatureOK)rt_thread_delay(100);
+	while(!qCtr->TemperatureOK){rt_thread_delay(100);}
+	/*等待滤波器稳定*/
+	rt_thread_delay(100);
 	for(;;)
 	{
 		ticker = rt_tick_get();
@@ -66,14 +80,12 @@ void IMUHeatThread(void* parameter)
 {
 	rt_tick_t Ticker = 0;
 	uint32_t PWM=0;
-	/*等待温度*/
-	rt_thread_delay(100);
-
+	/*等待IMU预初始化*/
+	rt_thread_delay(20);
+	
 	for(;;)
 	{
-		Ticker = rt_tick_get();
-		/*温度OK Flag*/
-		if(IMU->Temperature>40.5f){qCtr->TemperatureOK=1;}
+		Ticker = rt_tick_get();		
 		PWM = (uint32_t)IMU->PID_Cal(IMU->Temperature);
 		timer_channel_output_pulse_value_config(TIMER2,TIMER_CH_3,PWM);
 		rt_thread_delay_until(&Ticker,20);
@@ -98,7 +110,27 @@ void EXTI4_IRQHandler(void)
 		rt_sem_release(IMU_INT1Sem);
 	}
 }
+//IMU预初始化 用于完成加热动作
+static void IMU_PreInit()
+{
+	uint8_t buf = 0;
+	/*指定Bank0*/
+	IMU->WriteReg(0x76,0x00);
+	/*软重启*/
+	IMU->WriteReg(0x11,0x01);rt_thread_delay(5);
+	/*读取中断位 切换SPI*/
+	buf = IMU->ReadReg(0x2D);
+	/*指定Bank0*/
+	IMU->WriteReg(0x76,0x00);
+	/*Gyro设置*/
+	IMU->WriteReg(0x4F,0x06);//2000dps 1KHz
+	/*Accel设置*/
+	IMU->WriteReg(0x50,0x06);//16G 1KHz
+	/*电源管理*/
+	IMU->WriteReg(0x4E,0x0F);//ACC GYRO LowNoise Mode
+}
 
+//IMU初始化 用于正常工作
 static void IMU_Init()
 {
 	uint8_t buf = 0;
@@ -106,7 +138,7 @@ static void IMU_Init()
 	IMU->WriteReg(0x76,0x00);
 	/*软重启*/
 	IMU->WriteReg(0x11,0x01);rt_thread_delay(5);
-	/*读取中断位*/
+	/*读取中断位 切换SPI*/
 	buf = IMU->ReadReg(0x2D);
 	#ifdef qwDbug
 	/*打印IMU信息*/
