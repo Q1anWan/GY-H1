@@ -1,7 +1,7 @@
 /*********************************************************************************
   *FileName:		QCSLite.cpp
   *Author:  		qianwan
-  *Detail: 			四元数驱动 右前上 弧度制
+  *Detail: 			四元数驱动 右前上-XYZ-RollPitch-Yaw 弧度制
   
   *Version:  		1.4
   *Date:  			2023/03/27
@@ -21,176 +21,102 @@ cQCS QCS;
 
 /*---------------------FUNCTIONS---------------------*/
 /***********************************************************************
-** 函 数 名： Rotate
-** 函数说明： 四元数绕指定轴旋转Theta角
+** 函 数 名: Rotate
+** 函数说明: 四元数绕指定轴旋转Theta角
 **---------------------------------------------------------------------
-** 输入参数： 输入四元数、旋转轴、旋转角
-** 返回参数： 旋转后的四元数
+** 输入参数: 输入四元数、旋转轴、旋转角
+** 返回参数: 旋转后的四元数
 ***********************************************************************/
 void cQCS::Rotate(float *inputQ, float *outputQ, float *axis, float radian)
 {
 	float sinTheat = arm_sin_f32(radian*0.5f);
-	float p[4]={arm_cos_f32(radian*0.5f),sinTheat*axis[0],sinTheat*axis[1],sinTheat*axis[2]};
+	float p[4] = {arm_cos_f32(radian*0.5f),sinTheat*axis[0],sinTheat*axis[1],sinTheat*axis[2]};	
 	float pn[4]={p[0],-p[1],-p[2],-p[3]};
+	float tem[4];
 	
-	arm_quaternion_product_single_f32(p,inputQ,p);
-	arm_quaternion_product_single_f32(p,pn,outputQ);
-}
-
-
-/**@brief 欧拉角采用X-Y-Z**/
-/***********************************************************************
-** 函 数 名： QCS_GetRollAngel
-** 函数说明： 计算某四元数Roll欧拉角
-**---------------------------------------------------------------------
-** 输入参数： 四元数
-** 返回参数： Roll欧拉角
-***********************************************************************/
-void QCS_GetRollAngel(float Q_input[4],float *Roll)
-{
-	//Roll = arctan((2 * q2 * q3 + 2 * q0 * q1) / (-2 * q1^2 - 2 * q2^2 + 1)) 
-	float temp_a,temp_b,temp_c,temp_d;
-	arm_mult_f32(&Q_input[2],&Q_input[3],&temp_a,1);
-	arm_mult_f32(&Q_input[0],&Q_input[1],&temp_b,1);
-	arm_add_f32(&temp_a,&temp_b,&temp_c,1);
-	temp_a =2.0f;
-	arm_mult_f32(&temp_a,&temp_c,&temp_c,1);
-
-	arm_mult_f32(&Q_input[1],&Q_input[1],&temp_a,1);
-	arm_mult_f32(&Q_input[2],&Q_input[2],&temp_b,1);
-	arm_add_f32(&temp_a,&temp_b,&temp_d,1);
-	temp_a = -2.0f;
-	arm_mult_f32(&temp_a,&temp_d,&temp_d,1);
-	
-	*Roll = atan2f(temp_c,(temp_d+1));
-}
-
-/***********************************************************************
-** 函 数 名： QCS_GetYawAngel
-** 函数说明： 计算某四元数Yaw欧拉角
-**---------------------------------------------------------------------
-** 输入参数： 四元数
-** 返回参数： Yaw欧拉角
-***********************************************************************/
-void QCS_GetYawAngel(float Q_input[4],float *Yaw)
-{
-	//Yaw = arctan((2*q1*q2 + 2*q0*q3) / (-2*q2^2 - 2*q3^2+1))
-	float temp_a,temp_b,temp_c,temp_d;
-	arm_mult_f32(&Q_input[1],&Q_input[2],&temp_a,1);
-	arm_mult_f32(&Q_input[0],&Q_input[3],&temp_b,1);
-	arm_add_f32(&temp_a,&temp_b,&temp_c,1);
-	temp_a =2.0f;
-	arm_mult_f32(&temp_a,&temp_c,&temp_c,1);
-
-	arm_mult_f32(&Q_input[2],&Q_input[2],&temp_a,1);
-	arm_mult_f32(&Q_input[3],&Q_input[3],&temp_b,1);
-	arm_add_f32(&temp_a,&temp_b,&temp_d,1);
-	temp_a = -2.0f;
-	arm_mult_f32(&temp_a,&temp_d,&temp_d,1);
-	
-	*Yaw = atan2f(temp_c,(temp_d+1));
-}
-
-/***********************************************************************
-** 函 数 名： QCS_GetPitchAngel
-** 函数说明： 计算某四元数Pitch欧拉角
-**---------------------------------------------------------------------
-** 输入参数： 四元数
-** 返回参数： Pitch欧拉角
-***********************************************************************/
-void QCS_GetPitchAngel(float Q_input[4],float *Pitch)
-{
-	//Pitch = arcsin(2 * q0* q2 - 2 * q1 * q3)
-	float temp_a,temp_b,temp_c;
-	arm_mult_f32(&Q_input[0],&Q_input[2],&temp_a,1);
-	arm_mult_f32(&Q_input[1],&Q_input[3],&temp_b,1);
-	arm_sub_f32(&temp_a,&temp_b,&temp_c,1);
-	temp_a =2.0f;
-	arm_mult_f32(&temp_a,&temp_c,&temp_c,1);
-	
-	*Pitch = asinf(temp_c);
-}
-
-/***********************************************************************
-** 函 数 名： QCS_GetErrorQ
-** 函数说明： 计算误差四元数
-**---------------------------------------------------------------------
-** 输入参数： 当前四元数、目标四元数
-** 返回参数： 误差四元数
-***********************************************************************/
-void QCS_GetErrorQ(float Q_Now[4],float Q_Target[4],float Q_output[4])
-{
-	float InverseQ[4];
-	arm_quaternion_inverse_f32(Q_Now,InverseQ,1);
-	arm_quaternion_product_f32(Q_Target,InverseQ,Q_output,1);
-}
- 
-/***********************************************************************
-** 函 数 名： QCS_CorrectAHRSC
-** 函数说明： AHRS四元数修正
-**---------------------------------------------------------------------
-** 输入参数： AHRS原始四元数，坐标系漂移弧度（单MCU时为0）
-** 返回参数： AHRS修正后四元数
-***********************************************************************/
-void QCS_CorrectAHRSq(float q[4],float AHRSQ[4],float YC)
-{
-	//C板R标指向X正方向，Z方向垂直R标向外，右手系
-	float V[4]={0,0,-1.0f};
-	//旋转坐标轴到常规安装方向
-	QCS_Rotate(q,AHRSQ,V,PI_Half-YC);
+	arm_quaternion_product_single_f32(p,inputQ,tem);
+	arm_quaternion_product_single_f32(tem,pn,outputQ);
 	
 }
 
+
 /***********************************************************************
-** 函 数 名： QCS_init_data()
-** 函数说明： 初始AHRS算法四元数
+** 函 数 名: Roll
+** 函数说明: 计算某四元数Roll欧拉角 弧度
 **---------------------------------------------------------------------
-** 输入参数： 无
-** 返回参数： 无
+** 输入参数: 四元数
+** 返回参数: Roll欧拉角
 ***********************************************************************/
-void QCS_init_data(void)
+float cQCS::Roll(float *inputQ)
 {
-	QCS_IMU_Q[0]=1.0f;QCS_IMU_Q[1]=0.0f;QCS_IMU_Q[2]=0.0f;QCS_IMU_Q[3]=0.0f;
+	//atan2(2(q0q1_q2q3),1-2(q1q1+q2q2))
+	return atan2f( 
+					2.0f*(inputQ[0]*inputQ[1] + inputQ[2]*inputQ[3]),
+					(1.0f - 2.0f*(inputQ[1]*inputQ[1] + inputQ[2]*inputQ[2])) 
+				 );
 }
 
 /***********************************************************************
-** 函 数 名： QCS_IMU_update()
-** 函数说明： 更新AHRS四元数
+** 函 数 名: Pitch
+** 函数说明: 计算某四元数Pitch欧拉角 弧度
 **---------------------------------------------------------------------
-** 输入参数： 三轴陀螺仪数据,三轴加速度数据,坐标系旋转弧度
-** 返回参数： 无
+** 输入参数: 四元数
+** 返回参数: Pitch欧拉角
 ***********************************************************************/
-void QCS_AHRS_update(float *AHRS_Q,float *gyro, float *accel,float YC)
+float cQCS::Pitch(float *inputQ)
+{
+	//asin(2(q0q2-q3q1))
+	return asinf(2.0f*(inputQ[0]*inputQ[2]-inputQ[3]*inputQ[1]));
+}
+
+/***********************************************************************
+** 函 数 名: Yaw
+** 函数说明: 计算某四元数Yaw欧拉角 弧度
+**---------------------------------------------------------------------
+** 输入参数: 四元数
+** 返回参数: Yaw欧拉角
+***********************************************************************/
+float cQCS::Yaw(float *inputQ)
+{
+	//atan2(2(q0q3+q1q2),1-2(q2q2+q3q3))
+	return atan2f( 
+					2.0f*(inputQ[0]*inputQ[3] + inputQ[1]*inputQ[2]),
+					(1.0f - 2.0f*(inputQ[2]*inputQ[2] + inputQ[3]*inputQ[3])) 
+				 );
+}
+
+/***********************************************************************
+** 函 数 名: Euler
+** 函数说明: 四元数转欧拉角
+**---------------------------------------------------------------------
+** 输入参数: 四元数
+** 返回参数: RollPitchYaw欧拉角
+***********************************************************************/
+void cQCS::Euler(float *inputQ, float *radian)
 {	
-	//不使用地磁时调用MahonyAHRSupdateINS
-	#ifdef QCS_CORRECT
-	MahonyAHRSupdateINS(QCS_IMU_Q, gyro[0], gyro[1], gyro[2], accel[0], accel[1], accel[2]);
-	QCS_CorrectAHRSq(QCS_IMU_Q,AHRS_Q,YC);
-	#endif
-	#ifndef QCS_CORRECT
-	MahonyAHRSupdateINS(QCS_IMU_Q, gyro[0], gyro[1], gyro[2], accel[0], accel[1], accel[2]);
-	AHRS_Q[0] = QCS_IMU_Q[0];
-	AHRS_Q[1] = QCS_IMU_Q[1];
-	AHRS_Q[2] = QCS_IMU_Q[2];
-	AHRS_Q[3] = QCS_IMU_Q[3];
-	#endif
-	
+	radian[0] = this->Roll(inputQ);
+	radian[1] = this->Pitch(inputQ);
+	radian[2] = this->Yaw(inputQ);
 }
 
 /***********************************************************************
-** 函 数 名： QCS_Show_Degree()
-** 函数说明： 计算全部欧拉角
+** 函 数 名: Quaternion
+** 函数说明: 欧拉角转四元数
 **---------------------------------------------------------------------
-** 输入参数： AHRS四元数
-** 返回参数： 姿态角
+** 输入参数: RollPitchYaw欧拉角
+** 返回参数: 四元数
 ***********************************************************************/
-void QCS_Show_Degree(float *AHRSQ, float *IMU_Degree)
+void cQCS::Quaternion(float *radian, float *outputQ)
 {	
-	float temp[3];
-	QCS_GetRollAngel(AHRSQ,&temp[0]);
-	QCS_GetYawAngel(AHRSQ,&temp[1]);
-	QCS_GetPitchAngel(AHRSQ,&temp[2]);
-	IMU_Degree[0]=temp[0]*57.2957795130f;//Roll
-	IMU_Degree[1]=temp[1]*57.2957795130f;//Yaw
-	IMU_Degree[2]=temp[2]*57.2957795130f;//Pitch
+	float cosR = arm_cos_f32(radian[0]*0.5f);
+	float sinR = arm_sin_f32(radian[0]*0.5f);
+	float cosP = arm_cos_f32(radian[1]*0.5f);
+	float sinP = arm_sin_f32(radian[1]*0.5f);
+	float cosY = arm_cos_f32(radian[2]*0.5f);
+	float sinY = arm_sin_f32(radian[2]*0.5f);
+	
+	outputQ[0] = cosY*cosP*cosR + sinY*sinP*sinR;
+	outputQ[1] = sinY*cosP*cosR + cosY*sinP*sinR;
+	outputQ[2] = cosY*sinP*cosR + sinY*cosP*sinR;
+	outputQ[3] = cosY*cosP*sinR + sinY*sinP*cosR;
 }

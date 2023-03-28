@@ -6,6 +6,8 @@
 #include "Controller.h"
 #include "IMU.h"
 
+#include "QCSLite.h"
+
 uint16_t TxNum = 0;
 uint16_t TxDir = 0;
 uint16_t TxBuf= 0;
@@ -512,30 +514,29 @@ static void KeyActionThread(void* parameter)
 static void Test1Thread(void* parameter)
 {
 	rt_thread_delay(1000);
-
 	for(;;)
-	{	
-
+	{			
 		while(gpio_input_bit_get(GPIOB,GPIO_PIN_4))rt_thread_delay(10);
 		#ifdef qwDbug
 		list_thread();
 		#endif
 		rt_thread_delay(1000);
-		
 	}
 }
 static void Test2Thread(void* parameter)
 {
 	rt_thread_delay(2000);
 	rt_tick_t ticker;
+	float Angel[3];
+	rt_thread_delay(5000);
 	for(;;)
 	{	
 		ticker = rt_tick_get();
+		QCS.Euler(IMU->Q,Angel);		
 //		Msg->Printf("GYRO=%d %d %d\n",IMU->Gyro[0],IMU->Gyro[1],IMU->Gyro[2]);rt_thread_delay(1);
-//		Msg->Printf("Accel=%d %d %d\n",IMU->Accel[0],IMU->Accel[1],IMU->Accel[2]);rt_thread_delay(1);
-//		Msg->Printf("Tem=%f\n\n",IMU->Temperature);//rt_thread_delay(1);
-		Msg->Printf("%d %d %d %d %d %d\n",IMU->Gyro[0],IMU->Gyro[1],IMU->Gyro[2],IMU->Accel[0],IMU->Accel[1],IMU->Accel[2]);
-		rt_thread_delay_until(&ticker,2);
+//		Msg->Printf("Accel %d %d %d\n",IMU->Accel[0],IMU->Accel[1],IMU->Accel[2]);
+		Msg->Printf("\n%f %f %f\n",Angel[0]*57.2957795f,Angel[1]*57.2957795f,Angel[2]*57.2957795f);
+		rt_thread_delay_until(&ticker,1);
 	}
 }
 

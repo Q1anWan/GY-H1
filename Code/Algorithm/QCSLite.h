@@ -44,20 +44,15 @@
 
 class cQCS
 {
+	public:
+	void Euler(float *inputQ,float *radian);
+	void Quaternion(float *radian,float *outputQ);
 	void Rotate(float *inputQ, float *outputQ, float *axis, float radian);
-	
+	float Roll(float *inputQ);
+	float Pitch(float *inputQ);
+	float Yaw(float *inputQ);
 };
 extern cQCS QCS;
-//void QCS_Rotate(float Q_input[4],float Q_output[4],float Vector[3],float angel_Radian);
-//void QCS_Rotate_Pure(float *Q_input,float *Q_output,float *Vector,float angel_Radian);
-//void QCS_GetRollAngel(float Q_input[4],float *Roll);
-//void QCS_GetYawAngel(float Q_input[4],float *Yaw);
-//void QCS_GetPitchAngel(float Q_input[4],float *Pitch);
-//void QCS_GetErrorQ(float Q_Now[4],float Q_Target[4],float Q_output[4]);
-//void QCS_CorrectAHRSq(float q[4],float AHRSQ[4],float YC);
-//void QCS_init_data(void);
-//void QCS_AHRS_update(float *AHRS_Q,float *gyro, float *accel,float YC);
-//void QCS_Show_Degree(float AHRSQ[4], float IMU_Degree[3]);
 
 #endif
 #endif
