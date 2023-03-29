@@ -2,6 +2,7 @@
 #include "MsgThread.h"
 #include "Controller.h"
 #include "MahonyAHRS.h"
+#include "Flash_GD.h"
 
 cIMU *IMU;
 /*IMU进程控制指针*/
@@ -12,12 +13,16 @@ rt_thread_t IMUHeat_thread = RT_NULL;
 rt_sem_t IMU_INT1Sem = RT_NULL;	
 rt_sem_t IMU_INT2Sem = RT_NULL;
 
-static void IMU_PreInit();
-static void IMU_Init();
+static void IMU_PreInit(void);
+static void IMU_Init(void);
+static void IMUCalibRead(void);
 
 void IMUThread(void* parameter)
 {
 	IMU = new cIMU();
+	rt_enter_critical();
+	IMUCalibRead();
+	rt_exit_critical();
 	uint8_t Test;
 	IMU->SPI_Init(SPI0,GPIOB,GPIO_PIN_0);
 	IMU_PreInit();
@@ -40,12 +45,14 @@ void IMUThread(void* parameter)
 		{
 			IMU->ReadAccelGyro();
 			rt_enter_critical();
-			IMU->AccelCorrected[0] = IMU->Accel[0]+IMU->AccelCal[0];
-			IMU->AccelCorrected[1] = IMU->Accel[1]+IMU->AccelCal[1];
-			IMU->AccelCorrected[2] = IMU->Accel[2]+IMU->AccelCal[2];
-			IMU->GyroCorrected[0] = IMU->Gyro[0] + IMU->GyroCal[0];
-			IMU->GyroCorrected[1] = IMU->Gyro[1] + IMU->GyroCal[1];
-			IMU->GyroCorrected[2] = IMU->Gyro[2] + IMU->GyroCal[2];			
+
+			IMU->AccelCorrected[0] = ((float)IMU->Accel[0]+IMU->AccelCal[0])*IMU->LSB_ACC_GYRO[0];
+			IMU->AccelCorrected[1] = ((float)IMU->Accel[1]+IMU->AccelCal[1])*IMU->LSB_ACC_GYRO[0];
+			IMU->AccelCorrected[2] = ((float)IMU->Accel[2]+IMU->AccelCal[2])*IMU->LSB_ACC_GYRO[0];
+			IMU->GyroCorrected[0] = ((float)IMU->Gyro[0] + IMU->GyroCal[0])*IMU->LSB_ACC_GYRO[0];
+			IMU->GyroCorrected[1] = ((float)IMU->Gyro[1] + IMU->GyroCal[1])*IMU->LSB_ACC_GYRO[0];
+			IMU->GyroCorrected[2] = ((float)IMU->Gyro[2] + IMU->GyroCal[2])*IMU->LSB_ACC_GYRO[0];			
+			
 			rt_exit_critical();
 			IMU->ReadTem();
 		}
@@ -72,7 +79,7 @@ void IMUAHRSThread(void* parameter)
 		ticker = rt_tick_get();
 		rt_enter_critical();
 		/*互补滤波迭代四元数*/
-		MahonyAHRSupdateINS(IMU->Q,((float)IMU->GyroCorrected[0])*IMU->LSB_ACC_GYRO[1],((float)IMU->GyroCorrected[1])*IMU->LSB_ACC_GYRO[1],((float)IMU->GyroCorrected[2])*IMU->LSB_ACC_GYRO[1],((float)IMU->AccelCorrected[0])*IMU->LSB_ACC_GYRO[0],((float)IMU->AccelCorrected[1])*IMU->LSB_ACC_GYRO[0],((float)IMU->AccelCorrected[2])*IMU->LSB_ACC_GYRO[0]);
+		MahonyAHRSupdateINS(IMU->Q,(IMU->GyroCorrected[0]),IMU->GyroCorrected[1],IMU->GyroCorrected[2],IMU->AccelCorrected[0],IMU->AccelCorrected[1],IMU->AccelCorrected[2]);
 		rt_exit_critical();
 		rt_thread_delay_until(&ticker,1);
 	}
@@ -188,4 +195,18 @@ static void IMU_Init()
 	IMU->WriteReg(0x76,0x00);
 	/*电源管理*/
 	IMU->WriteReg(0x4E,0x0F);//ACC GYRO LowNoise Mode
+}
+
+static void IMUCalibRead(void)
+{	
+	uint32_t buf[4];
+	
+	fmc_read_u32(FLASH_USERDATA_ADDRESS+4,buf,3);
+	
+	IMU->GyroCal[0] = ((float)((int16_t)(buf[0]>>16)))/256.0f;
+	IMU->GyroCal[1] = ((float)((int16_t)(buf[0]&0xFFFF)))/256.0f;
+	IMU->GyroCal[2] = ((float)((int16_t)(buf[1]>>16)))/256.0f;
+	IMU->AccelCal[0] = ((float)((int16_t)(buf[1]&0xFFFF)))/256.0f;
+	IMU->AccelCal[1] = ((float)((int16_t)(buf[2]>>16)))/256.0f;
+	IMU->AccelCal[2] = ((float)((int16_t)(buf[2]&0xFFFF)))/256.0f;
 }
