@@ -60,6 +60,7 @@ void UARTThread(void* parameter)
 				{Msg->UartTx(Msg->UartRecBuf,4,2);}//回复信息		
 				uint16_t mb_buf = (Msg->UartRecBuf[1]<<8) | (Msg->UartRecBuf[2]);
 				rt_mb_send(Config_mailbox,(rt_ubase_t)mb_buf);
+				rt_thread_delay(1);
 			}
 		}
 		Msg->Recieve_DMA(Msg->UartRecBuf,16);//再次进入接受模式

@@ -204,7 +204,8 @@ void DataOutputThread(void* parameter)
 	rt_thread_delay(1500);
 	const uint16_t DelayTime = 1 << qCtr->ODR;
 	rt_tick_t ticker;
-	
+	/*等待温度补偿OK*/
+	while(!qCtr->TemperatureOK){rt_thread_delay(100);}
 	for(;;)
 	{		
 		ticker = rt_tick_get();
@@ -212,7 +213,6 @@ void DataOutputThread(void* parameter)
 		/*允许对外输出*/
 		if(qCtr->EnableOutput==1)
 		{
-			
 			/*CAN输出*/
 			if(qCtr->OTSel==1)
 			{
@@ -289,18 +289,18 @@ void DataOutputThread(void* parameter)
 			uint8_t TxBuf[14]={0};
 			qCtr->OutPutMode = qCtr->OutPutModeLast;
 			TxBuf[0]=0x42;
-			TxBuf[1]=(int16_t)(IMU->GyroCal[0]*256.0f)>>8;
-			TxBuf[2]=(int16_t)(IMU->GyroCal[0]*256.0f)&0xFF;
-			TxBuf[3]=(int16_t)(IMU->GyroCal[1]*256.0f)>>8;
-			TxBuf[4]=(int16_t)(IMU->GyroCal[1]*256.0f)&0xFF;
-			TxBuf[5]=(int16_t)(IMU->GyroCal[2]*256.0f)>>8;
-			TxBuf[6]=(int16_t)(IMU->GyroCal[2]*256.0f)&0xFF;
-			TxBuf[7]=(int16_t)(IMU->AccelCal[0]*256.0f)>>8;
-			TxBuf[8]=(int16_t)(IMU->AccelCal[0]*256.0f)&0xFF;
-			TxBuf[9]=(int16_t)(IMU->AccelCal[1]*256.0f)>>8;
-			TxBuf[10]=(int16_t)(IMU->AccelCal[1]*256.0f)&0xFF;
-			TxBuf[11]=(int16_t)(IMU->AccelCal[2]*256.0f)>>8;
-			TxBuf[12]=(int16_t)(IMU->AccelCal[2]*256.0f)&0xFF;
+			TxBuf[1]=(int16_t)(IMU->GyroCal[0]*1000.0f)>>8;
+			TxBuf[2]=(int16_t)(IMU->GyroCal[0]*1000.0f)&0xFF;
+			TxBuf[3]=(int16_t)(IMU->GyroCal[1]*1000.0f)>>8;
+			TxBuf[4]=(int16_t)(IMU->GyroCal[1]*1000.0f)&0xFF;
+			TxBuf[5]=(int16_t)(IMU->GyroCal[2]*1000.0f)>>8;
+			TxBuf[6]=(int16_t)(IMU->GyroCal[2]*1000.0f)&0xFF;
+			TxBuf[7]=(int16_t)(IMU->AccelCal[0]*1000.0f)>>8;
+			TxBuf[8]=(int16_t)(IMU->AccelCal[0]*1000.0f)&0xFF;
+			TxBuf[9]=(int16_t)(IMU->AccelCal[1]*1000.0f)>>8;
+			TxBuf[10]=(int16_t)(IMU->AccelCal[1]*1000.0f)&0xFF;
+			TxBuf[11]=(int16_t)(IMU->AccelCal[2]*1000.0f)>>8;
+			TxBuf[12]=(int16_t)(IMU->AccelCal[2]*1000.0f)&0xFF;
 			TxBuf[13]=cal_crc8_table(TxBuf,13);
 			if(!qCtr->OTSel){
 			Msg->USBTx(TxBuf,14,RT_WAITING_NO);}
@@ -321,5 +321,6 @@ static void ConfigRead(void)
 	qCtr->CAN_ID 	= (uint16_t)(SYS_CAN_ID_BASE+((buf&(uint32_t)0x0000FF00U)>>4));
 	qCtr->ODR 		= (uint8_t)((buf&(uint32_t)0x00FF0000U)>>16);
 	qCtr->OutPutMode= (uint8_t)((buf&(uint32_t)0xFF000000U)>>24);
+	qCtr->OutPutModeLast = qCtr->OutPutMode;
 }	
 

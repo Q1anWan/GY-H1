@@ -249,9 +249,6 @@ def SettingApply():
             case "Raw data":
                 TxBuf = CMDPack(order='02',data='03')
                 COM.write(TxBuf)
-            case "Processed data":
-                TxBuf = CMDPack(order='02',data='04')
-                COM.write(TxBuf)
         time.sleep(0.1)
 
         match IMU_Set.ID_CB.get():
@@ -318,7 +315,7 @@ def GYSetFunGUI():
     #输出数据设置
     TCB3 = tkinter.Label(GUI,anchor='n',bg='deepskyblue',fg='white',text='MOD',font=('Arial', 11),width=16,height=1)
     IMU_Set.OutFormat_CB = ttk.Combobox(GUI,width='18',justify='left')
-    IMU_Set.OutFormat_CB["value"]=("Quaternion","Raw data","Processed data")
+    IMU_Set.OutFormat_CB["value"]=("Quaternion","Raw data")
     IMU_Set.OutFormat_CB.current(0)
 
     #ID设置
@@ -364,19 +361,6 @@ def CalConRec():
     MOD_Cal['state'] = 'disable'
     ConnectButton['bg'] = 'white'
 
-    if MOD_Cal.get() == "Check Raw data":
-        ConnectButton['text'] = 'Reading Raw Data...'
-        ACalButton['bg'] = 'Gold'
-        ACalButton['fg'] = 'OrangeRed'
-        ACalButton['state'] = 'normal'
-        GCalButton['bg'] = 'Gold'
-        GCalButton['fg'] = 'OrangeRed'
-        GCalButton['state'] = 'normal'
-    else:
-        ConnectButton['text'] = 'Reading Processed Data...'
-        ACalButton['bg'] = 'white'
-        GCalButton['bg'] = 'white'
-
     #重置连接
     COM.connect()
 
@@ -385,6 +369,45 @@ def CalConRec():
         tkinter.messagebox.showinfo('Error','GY-H1连接异常!!')
         GUI.destroy()
         return False
+    
+    #初始数据读取模式
+    if MOD_Cal.get() == "Check Raw data":
+        ConnectButton['text'] = 'Reading Raw Data...'
+        ACalButton['bg'] = 'Gold'
+        ACalButton['fg'] = 'OrangeRed'
+        ACalButton['state'] = 'normal'
+        GCalButton['bg'] = 'Gold'
+        GCalButton['fg'] = 'OrangeRed'
+        GCalButton['state'] = 'normal'
+    #后处理数据读取
+    else:
+        ConnectButton['text'] = 'Reading Processed Data...'
+        ACalButton['bg'] = 'white'
+        GCalButton['bg'] = 'white'
+           
+        time.sleep(0.1)
+        TxBuf = CMDPack(order='00',data='04')
+        COM.COM_handel.flushInput()
+        COM.write(TxBuf)
+        time.sleep(0.01)
+        count=COM.COM_handel.inWaiting()
+        time.sleep(0.01)
+        Rec = COM.COM_handel.read(count)
+        if (count == 14) & (Rec[13:14] == CRC8(Rec[0:13])):
+            IMU_Calib.GyXc = float(int.from_bytes(Rec[1:3],byteorder='big',signed=True))/1000
+            IMU_Calib.GyYc = float(int.from_bytes(Rec[3:5],byteorder='big',signed=True))/1000
+            IMU_Calib.GyZc = float(int.from_bytes(Rec[5:7],byteorder='big',signed=True))/1000
+            IMU_Calib.AcXc = float(int.from_bytes(Rec[7:9],byteorder='big',signed=True))/1000
+            IMU_Calib.AcYc = float(int.from_bytes(Rec[9:11],byteorder='big',signed=True))/1000
+            IMU_Calib.AcZc = float(int.from_bytes(Rec[11:13],byteorder='big',signed=True))/1000
+
+            ACalButton['text'] = 'Accel Static Correct Value [X,Y,X] = [' + str(IMU_Calib.AcXc) +', '+ str(IMU_Calib.AcYc) +', '+ str(IMU_Calib.AcZc)+']'
+            GCalButton['text'] = 'Gyro Static Correct Value [X,Y,X] =  [' + str(IMU_Calib.GyXc) +', '+ str(IMU_Calib.GyYc) +', '+ str(IMU_Calib.GyZc)+']'
+
+        else:
+            tkinter.messagebox.showinfo('Error','读取校准错误')
+            GUI.destroy()
+            return False
     
     #进入配置模式
     time.sleep(0.5)
@@ -395,11 +418,8 @@ def CalConRec():
     TxBuf = CMDPack(order='03',data='01')
     COM.write(TxBuf)
     time.sleep(0.1)
-    #设置输出模式
-    if MOD_Cal.get() == "Check Raw data":
-        TxBuf = CMDPack(order='02',data='03')
-    else:
-        TxBuf = CMDPack(order='02',data='04')
+    #原始数据模式
+    TxBuf = CMDPack(order='02',data='03')
     COM.write(TxBuf)
     time.sleep(0.1)
     #保存设置
@@ -408,7 +428,7 @@ def CalConRec():
     time.sleep(0.5)
     COM.COM_handel.close()
     time.sleep(0.5)
-    
+    #连接设备
     COM.connect('rst')
     #重新连接设备
     if COM.IsGYH1Connected() == False:
@@ -416,51 +436,86 @@ def CalConRec():
         GUI.destroy()
         print('GY-H1连接异常!!')
         return False
-    
-
     #启动接收进程
     IMU_Data.Data_Thread_Enable = 1
-    thread_RawDataRec = threading.Thread(target=RawDataRec)
-    thread_RawDataRec.start()   
+    thread_DataRec = threading.Thread(target=DataRec)
+    thread_DataRec.start()   
 
-def RawDataRec():
+def DataRec():
     
     #开启数据接收
     Txbuf = CMDPack(order='00',data='02')
     COM.write(Txbuf)
     time.sleep(1)
     tbuf = 0
-    while True:
-        RecBuf = COM.COM_handel.read(14)
-        #对齐数据
-        if COM.COM_handel.inWaiting() != 0 :
-            COM.COM_handel.flushInput()
-       
-        #CRC校验
-        if RecBuf[13:14] == CRC8(RecBuf[0:13]):
-            GyroX = int.from_bytes(RecBuf[1:3],byteorder='big',signed=True)
-            GyroY = int.from_bytes(RecBuf[3:5],byteorder='big',signed=True)
-            GyroZ = int.from_bytes(RecBuf[5:7],byteorder='big',signed=True)
-            AccelX = int.from_bytes(RecBuf[7:9],byteorder='big',signed=True)
-            AccelY = int.from_bytes(RecBuf[9:11],byteorder='big',signed=True)
-            AccelZ = int.from_bytes(RecBuf[11:13],byteorder='big',signed=True)
+    if MOD_Cal.get() == "Check Processed data":
+        while True:
+            RecBuf = COM.COM_handel.read(14)
+            #对齐数据
+            if COM.COM_handel.inWaiting() != 0 :
+                COM.COM_handel.flushInput()
 
-            #进入队列
-            tbuf += 0.003#加了矫正
-            IMU_Data.UI_t.append(tbuf)
-            IMU_Data.GyXq.append(GyroX)
-            IMU_Data.GyYq.append(GyroY)
-            IMU_Data.GyZq.append(GyroZ)
-            IMU_Data.AcXq.append(AccelX)
-            IMU_Data.AcYq.append(AccelY)
-            IMU_Data.AcZq.append(AccelZ)
-        # else:
-        #     print('-没CRC\n\n')
+            #CRC校验
+            if RecBuf[13:14] == CRC8(RecBuf[0:13]):
+                GyroX = float(int.from_bytes(RecBuf[1:3],byteorder='big',signed=True))
+                GyroY = float(int.from_bytes(RecBuf[3:5],byteorder='big',signed=True))
+                GyroZ = float(int.from_bytes(RecBuf[5:7],byteorder='big',signed=True))
+                AccelX = float(int.from_bytes(RecBuf[7:9],byteorder='big',signed=True))
+                AccelY = float(int.from_bytes(RecBuf[9:11],byteorder='big',signed=True))
+                AccelZ = float(int.from_bytes(RecBuf[11:13],byteorder='big',signed=True))
 
-        #进程退出
-        if IMU_Data.Data_Thread_Enable == 0:
-            return
+                
+                GyroX += IMU_Calib.GyXc
+                GyroY += IMU_Calib.GyYc
+                GyroZ += IMU_Calib.GyZc
+                AccelX += IMU_Calib.AcXc
+                AccelY += IMU_Calib.AcYc
+                AccelZ += IMU_Calib.AcZc
 
+                #进入队列
+                tbuf += 0.003#加了矫正
+                IMU_Data.UI_t.append(tbuf)
+                IMU_Data.GyXq.append(GyroX)
+                IMU_Data.GyYq.append(GyroY)
+                IMU_Data.GyZq.append(GyroZ)
+                IMU_Data.AcXq.append(AccelX)
+                IMU_Data.AcYq.append(AccelY)
+                IMU_Data.AcZq.append(AccelZ)
+
+            #进程退出
+            if IMU_Data.Data_Thread_Enable == 0:
+                return
+    else:
+        while True:
+            RecBuf = COM.COM_handel.read(14)
+            #对齐数据
+            if COM.COM_handel.inWaiting() != 0 :
+                COM.COM_handel.flushInput()
+
+            #CRC校验
+            if RecBuf[13:14] == CRC8(RecBuf[0:13]):
+                GyroX = int.from_bytes(RecBuf[1:3],byteorder='big',signed=True)
+                GyroY = int.from_bytes(RecBuf[3:5],byteorder='big',signed=True)
+                GyroZ = int.from_bytes(RecBuf[5:7],byteorder='big',signed=True)
+                AccelX = int.from_bytes(RecBuf[7:9],byteorder='big',signed=True)
+                AccelY = int.from_bytes(RecBuf[9:11],byteorder='big',signed=True)
+                AccelZ = int.from_bytes(RecBuf[11:13],byteorder='big',signed=True)
+
+                #进入队列
+                tbuf += 0.003#加了矫正
+                IMU_Data.UI_t.append(tbuf)
+                IMU_Data.GyXq.append(GyroX)
+                IMU_Data.GyYq.append(GyroY)
+                IMU_Data.GyZq.append(GyroZ)
+                IMU_Data.AcXq.append(AccelX)
+                IMU_Data.AcYq.append(AccelY)
+                IMU_Data.AcZq.append(AccelZ)
+            else:
+                print('-没CRC\n\n')
+
+            #进程退出
+            if IMU_Data.Data_Thread_Enable == 0:
+                return
 def Gyro_Update(i):
 
     if len(IMU_Data.GyXq)!=0:
@@ -593,9 +648,9 @@ def GyroCaliThread():
     
   
     #平均一下,四舍五入,截去前2%的数据
-    IMU_Calib.GyXc = -round(np.average(bufX_p[int(len(bufX_p)*0.02):-1]))
-    IMU_Calib.GyYc = -round(np.average(bufY_p[int(len(bufY_p)*0.02):-1]))
-    IMU_Calib.GyZc = -round(np.average(bufZ_p[int(len(bufZ_p)*0.02):-1]))
+    IMU_Calib.GyXc = -round(1000*np.average(bufX_p[int(len(bufX_p)*0.02):-1]))
+    IMU_Calib.GyYc = -round(1000*np.average(bufY_p[int(len(bufY_p)*0.02):-1]))
+    IMU_Calib.GyZc = -round(1000*np.average(bufZ_p[int(len(bufZ_p)*0.02):-1]))
     
     try:
         #输出用于校准的序列
@@ -610,12 +665,12 @@ def GyroCaliThread():
         print('Gyro校准数据输出异常!!')
 
     print('Gyro Corret Value:')
-    print('Correct [X,Y,Z] = [',IMU_Calib.GyXc,', ',IMU_Calib.GyYc,', ',IMU_Calib.GyZc,']')
+    print('Correct [X,Y,Z] = [',float(IMU_Calib.GyXc)/1000,', ',float(IMU_Calib.GyYc)/1000,', ',float(IMU_Calib.GyZc)/1000,']')
     print('STD [X,Y,Z] = [',np.std(bufX,ddof=0),', ',np.std(bufY,ddof=0),', ',np.std(bufZ,ddof=0),']')
     
     ACalButton['state'] = 'disable'
     GCalButton['state'] = 'normal'
-    ACalButton['text'] = 'Gyro Static Correct Value [X,Y,X] = [' + str(IMU_Calib.GyXc) +', '+ str(IMU_Calib.GyYc) +', '+ str(IMU_Calib.GyZc)+']'
+    ACalButton['text'] = 'Gyro Static Correct Value [X,Y,X] = [' + str(float(IMU_Calib.GyXc)/1000) +', '+ str(float(IMU_Calib.GyYc)/1000) +', '+ str(float(IMU_Calib.GyZc)/1000)+']'
     GCalButton['text'] = 'Apply'
     tkinter.messagebox.showinfo('Info','GY-H1 Gyro静态校准值计算完成!!\n按Apply写入校准,关闭窗口丢弃值')
     
