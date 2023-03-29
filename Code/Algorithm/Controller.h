@@ -16,8 +16,8 @@ class cCTR
 	uint8_t		OTSel			= 0x00;			//输出接口
 	uint16_t	CAN_ID			= 0x300;		//CAN_ID
 	uint8_t 	ODR				= 0x03;			//输出速率
-	uint8_t		OutPutMode		= 0x00;			//对外输出模式 
-	uint8_t		OutPutModeLast	= OutPutMode;	//上次设置的对外输出模式
+	uint8_t		OutPutMode		= 0x00;			//对外输出模式
+	uint8_t		OutPutModeLast	= OutPutMode;	//原对外输出模式
 	
 	uint8_t		TemperatureOK	= 0;		//温度补偿OK
 	uint8_t		EnableOutput	= 1;		//允许输出

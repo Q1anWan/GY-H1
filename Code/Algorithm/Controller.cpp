@@ -11,7 +11,8 @@
 cCTR *qCtr;
 /*灯控制指针*/
 cWS281x *LED;
-
+/*内存读取*/
+static void ConfigRead(void);
 /*系统设置进程控制指针*/
 rt_thread_t Config_thread = RT_NULL;
 rt_mailbox_t Config_mailbox = RT_NULL;
@@ -29,6 +30,11 @@ void ConfigThread(void* parameter)
 {
 	qCtr = new cCTR;
 	LED = new cWS281x;
+	
+	/*读取控制数据*/
+	rt_enter_critical();
+	ConfigRead();
+	rt_exit_critical();
 	
 	/*LED发送缓冲区*/	
 	uint8_t Color_buf[10]={0};
@@ -68,7 +74,7 @@ void ConfigThread(void* parameter)
 					case 0x04:
 						qCtr->OutPutModeLast = qCtr->OutPutMode;
 						qCtr->OutPutMode = 0x02;
-					break;
+					break;	
 				}
 				rt_exit_critical();
 			break;
@@ -239,8 +245,8 @@ void DataOutputThread(void* parameter)
 					break;
 				}
 			}
+
 			uint8_t TxBuf[18]={0};
-			/*USB输出*/
 			switch(qCtr->OutPutMode)
 			{
 				
@@ -277,25 +283,24 @@ void DataOutputThread(void* parameter)
 				break;
 			}
 		}
-		
 		/*6轴偏移量校正值输出*/
 		if(qCtr->OutPutMode==0x02)
 		{
 			uint8_t TxBuf[14]={0};
 			qCtr->OutPutMode = qCtr->OutPutModeLast;
 			TxBuf[0]=0x42;
-			TxBuf[1]=((int16_t)(IMU->GyroCal[0]*256.0f))>>8;
-			TxBuf[2]=((int16_t)(IMU->GyroCal[0]*256.0f))&0xFF;
-			TxBuf[3]=((int16_t)(IMU->GyroCal[1]*256.0f))>>8;
-			TxBuf[4]=((int16_t)(IMU->GyroCal[1]*256.0f))&0xFF;
-			TxBuf[5]=((int16_t)(IMU->GyroCal[2]*256.0f))>>8;
-			TxBuf[6]=((int16_t)(IMU->GyroCal[2]*256.0f))&0xFF;
-			TxBuf[7]=((int16_t)(IMU->AccelCal[0]*256.0f))>>8;
-			TxBuf[8]=((int16_t)(IMU->AccelCal[0]*256.0f))&0xFF;
-			TxBuf[9]=((int16_t)(IMU->AccelCal[1]*256.0f))>>8;
-			TxBuf[10]=((int16_t)(IMU->AccelCal[1]*256.0f))&0xFF;
-			TxBuf[11]=((int16_t)(IMU->AccelCal[2]*256.0f))>>8;
-			TxBuf[12]=((int16_t)(IMU->AccelCal[2]*256.0f))&0xFF;
+			TxBuf[1]=(int16_t)(IMU->GyroCal[0]*256.0f)>>8;
+			TxBuf[2]=(int16_t)(IMU->GyroCal[0]*256.0f)&0xFF;
+			TxBuf[3]=(int16_t)(IMU->GyroCal[1]*256.0f)>>8;
+			TxBuf[4]=(int16_t)(IMU->GyroCal[1]*256.0f)&0xFF;
+			TxBuf[5]=(int16_t)(IMU->GyroCal[2]*256.0f)>>8;
+			TxBuf[6]=(int16_t)(IMU->GyroCal[2]*256.0f)&0xFF;
+			TxBuf[7]=(int16_t)(IMU->AccelCal[0]*256.0f)>>8;
+			TxBuf[8]=(int16_t)(IMU->AccelCal[0]*256.0f)&0xFF;
+			TxBuf[9]=(int16_t)(IMU->AccelCal[1]*256.0f)>>8;
+			TxBuf[10]=(int16_t)(IMU->AccelCal[1]*256.0f)&0xFF;
+			TxBuf[11]=(int16_t)(IMU->AccelCal[2]*256.0f)>>8;
+			TxBuf[12]=(int16_t)(IMU->AccelCal[2]*256.0f)&0xFF;
 			TxBuf[13]=cal_crc8_table(TxBuf,13);
 			if(!qCtr->OTSel){
 			Msg->USBTx(TxBuf,14,RT_WAITING_NO);}
@@ -303,26 +308,18 @@ void DataOutputThread(void* parameter)
 			Msg->UartTx(TxBuf,14,RT_WAITING_NO);
 			#endif
 		}
-		
 		rt_thread_delay_until(&ticker,DelayTime);
 	}
 }
 
-void ConfigRead(void)
+static void ConfigRead(void)
 {
-	uint32_t buf[5];
-	fmc_read_u32(FLASH_USERDATA_ADDRESS,buf,5);
+	uint32_t buf;
+	fmc_read_u32(FLASH_USERDATA_ADDRESS,&buf,1);
 	
-	qCtr->OTSel  	= (uint8_t)(buf[0]&(uint32_t)0x000000FFU);
-	qCtr->CAN_ID 	= (uint16_t)(SYS_CAN_ID_BASE+((buf[0]&(uint32_t)0x0000FF00U)>>4));
-	qCtr->ODR 		= (uint8_t)((buf[0]&(uint32_t)0x00FF0000U)>>16);
-	qCtr->OutPutMode= (uint8_t)((buf[0]&(uint32_t)0xFF000000U)>>24);
-	qCtr->OutPutModeLast = qCtr->OutPutMode;
-	
-	IMU->GyroCal[0] = (float)((int16_t)(buf[1]>>16)) / 256.0f;
-	IMU->GyroCal[1] = (float)((int16_t)(buf[1]&0xFFFF)) / 256.0f;
-	IMU->GyroCal[2] = (float)((int16_t)(buf[2]>>16)) / 256.0f;
-	IMU->AccelCal[0] = (float)((int16_t)(buf[2]&0xFFFF)) / 256.0f;
-	IMU->AccelCal[1] = (float)((int16_t)(buf[3]>>16)) / 256.0f;
-	IMU->AccelCal[2] = (float)((int16_t)(buf[3]&0xFFFF)) / 256.0f;
+	qCtr->OTSel  	= (uint8_t)(buf&(uint32_t)0x000000FFU);
+	qCtr->CAN_ID 	= (uint16_t)(SYS_CAN_ID_BASE+((buf&(uint32_t)0x0000FF00U)>>4));
+	qCtr->ODR 		= (uint8_t)((buf&(uint32_t)0x00FF0000U)>>16);
+	qCtr->OutPutMode= (uint8_t)((buf&(uint32_t)0xFF000000U)>>24);
 }	
+

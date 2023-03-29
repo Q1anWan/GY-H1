@@ -19,9 +19,6 @@ uint8_t Test2 = 0;
 uint8_t Test3 = 0;
 
 
-
-extern void ConfigRead(void);
-
 static void LEDCalculateThread(void* parameter);
 static void LEDCANThread(void* parameter);
 rt_thread_t LEDCal_thread = RT_NULL;
@@ -206,12 +203,14 @@ int main(void)
 	#ifdef qwDbug									
 	rt_kprintf("\n\nUART_thread  = %d\n",UART_thread);rt_thread_delay(2);				
 	#endif
+	
+	rt_thread_startup(Config_thread);
 	rt_thread_startup(IMU_thread);
 	rt_thread_startup(IMUAHRS_thread);
 	rt_thread_startup(IMUHeat_thread);
-	rt_thread_startup(Config_thread);
+	
 	rt_thread_delay(5);
-	ConfigRead();
+
 	
 	if(qCtr->OTSel==1)//Æô¶¯CAN
 	{
@@ -528,7 +527,8 @@ static void Test2Thread(void* parameter)
 	rt_thread_delay(2000);
 	rt_tick_t ticker;
 	float Angel[3];
-	rt_thread_delay(5000);
+	while(IMU->Temperature<41.0f){rt_thread_delay(100);}
+	rt_thread_delay(1000);
 	for(;;)
 	{	
 		ticker = rt_tick_get();

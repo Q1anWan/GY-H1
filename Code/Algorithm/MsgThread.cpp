@@ -91,7 +91,7 @@ void USBDThread(void* parameter)
 		if(Msg->USB_COM->receive_length == SYS_CONFIG_PACK_LEN)//长度正确
 		{
 			if((Msg->USB_COM->data[3]==cal_crc8_table(Msg->USB_COM->data,3))&&Msg->USB_COM->data[0]==CMD_PACG_HEAD)//CRC通过 包头正确
-			{
+			{	
 				if((Msg->USB_COM->data[1]!=0x00)||(Msg->USB_COM->data[2]!=0x04))
 				{Msg->USBTx(Msg->USB_COM->data,4,2);}//回复信息
 				uint16_t mb_buf = (Msg->USB_COM->data[1]<<8) | (Msg->USB_COM->data[2]);
