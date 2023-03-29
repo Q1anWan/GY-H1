@@ -40,12 +40,12 @@ void IMUThread(void* parameter)
 		{
 			IMU->ReadAccelGyro();
 			rt_enter_critical();
-			IMU->AccelCorrected[0] = IMU->Accel[0]+IMU->AccelCal[0];
-			IMU->AccelCorrected[1] = IMU->Accel[1]+IMU->AccelCal[1];
-			IMU->AccelCorrected[2] = IMU->Accel[2]+IMU->AccelCal[2];
-			IMU->GyroCorrected[0] = IMU->Gyro[0] + IMU->GyroCal[0];
-			IMU->GyroCorrected[1] = IMU->Gyro[1] + IMU->GyroCal[1];
-			IMU->GyroCorrected[2] = IMU->Gyro[2] + IMU->GyroCal[2];			
+			IMU->AccelCorrected[0] = (IMU->Accel[0] + IMU->AccelCal[0]) * IMU->LSB_ACC_GYRO[0];
+			IMU->AccelCorrected[1] = (IMU->Accel[1] + IMU->AccelCal[1]) * IMU->LSB_ACC_GYRO[0];
+			IMU->AccelCorrected[2] = (IMU->Accel[2] + IMU->AccelCal[2]) * IMU->LSB_ACC_GYRO[0];
+			IMU->GyroCorrected[0] = (IMU->Gyro[0] + IMU->GyroCal[0]) * IMU->LSB_ACC_GYRO[1];
+			IMU->GyroCorrected[1] = (IMU->Gyro[1] + IMU->GyroCal[1]) * IMU->LSB_ACC_GYRO[1];
+			IMU->GyroCorrected[2] = (IMU->Gyro[2] + IMU->GyroCal[2]) * IMU->LSB_ACC_GYRO[1];			
 			rt_exit_critical();
 			IMU->ReadTem();
 		}
@@ -72,7 +72,7 @@ void IMUAHRSThread(void* parameter)
 		ticker = rt_tick_get();
 		rt_enter_critical();
 		/*互补滤波迭代四元数*/
-		MahonyAHRSupdateINS(IMU->Q,((float)IMU->GyroCorrected[0])*IMU->LSB_ACC_GYRO[1],((float)IMU->GyroCorrected[1])*IMU->LSB_ACC_GYRO[1],((float)IMU->GyroCorrected[2])*IMU->LSB_ACC_GYRO[1],((float)IMU->AccelCorrected[0])*IMU->LSB_ACC_GYRO[0],((float)IMU->AccelCorrected[1])*IMU->LSB_ACC_GYRO[0],((float)IMU->AccelCorrected[2])*IMU->LSB_ACC_GYRO[0]);
+		MahonyAHRSupdateINS(IMU->Q,IMU->GyroCorrected[0],IMU->GyroCorrected[1],IMU->GyroCorrected[2],IMU->AccelCorrected[0],IMU->AccelCorrected[1],IMU->AccelCorrected[2]);
 		rt_exit_critical();
 		rt_thread_delay_until(&ticker,1);
 	}

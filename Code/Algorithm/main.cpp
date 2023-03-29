@@ -82,7 +82,7 @@ int main(void)
 	rt_thread_create( 					"LEDCal",           /* 线程名字 */
 										LEDCalculateThread, /* 线程入口函数 */
 										RT_NULL,            /* 线程入口函数参数 */
-										256,                /* 线程栈大小 */
+										368,                /* 线程栈大小 */
 										16,                 /* 线程的优先级 */
 										20);                /* 线程时间片 */
 	
@@ -134,7 +134,7 @@ int main(void)
 	rt_thread_create( 					"IMURead",          /* 线程名字 */
 										IMUThread,   		/* 线程入口函数 */
 										RT_NULL,            /* 线程入口函数参数 */
-										512,                /* 线程栈大小 */
+										768,                /* 线程栈大小 */
 										1,                  /* 线程的优先级 */
 										10);                /* 线程时间片 */	
 
@@ -150,7 +150,7 @@ int main(void)
 	rt_thread_create( 					"IMUAHRS",        	/* 线程名字 */
 										IMUAHRSThread,   	/* 线程入口函数 */
 										RT_NULL,            /* 线程入口函数参数 */
-										512,                /* 线程栈大小 */
+										768,                /* 线程栈大小 */
 										1,                  /* 线程的优先级 */
 										5);                 /* 线程时间片 */
 										
@@ -184,7 +184,7 @@ int main(void)
 	rt_thread_create( 					"Key",				/* 线程名字 */
 										KeyThread,   		/* 线程入口函数 */
 										RT_NULL,            /* 线程入口函数参数 */
-										256,                /* 线程栈大小 */
+										512,                /* 线程栈大小 */
 										5,                  /* 线程的优先级 */
 										5);             	/* 线程时间片 */
 	
@@ -197,7 +197,7 @@ int main(void)
 	rt_thread_create( 					"KeyAction",		/* 线程名字 */
 										KeyActionThread,   	/* 线程入口函数 */
 										RT_NULL,            /* 线程入口函数参数 */
-										256,                /* 线程栈大小 */
+										512,                /* 线程栈大小 */
 										4,                  /* 线程的优先级 */
 										5);             	/* 线程时间片 */
 										
@@ -260,7 +260,7 @@ int main(void)
 	rt_thread_startup(LEDCal_thread);					
 	rt_thread_startup(DataOutput_thread);
 	rt_thread_startup(Key_thread);
-	rt_thread_startup(KeyAction_thread);
+	//rt_thread_startup(KeyAction_thread);
 	#ifdef qwDbug
 	Test1_thread =                          				/* 线程控制块指针 */
 	rt_thread_create( 					"Test1",            /* 线程名字 */

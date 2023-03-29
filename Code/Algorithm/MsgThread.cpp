@@ -56,7 +56,8 @@ void UARTThread(void* parameter)
 			
 			if(Msg->UartRecBuf[3]==cal_crc8_table(Msg->UartRecBuf,3))//CRC通过
 			{
-				Msg->UartTx(Msg->UartRecBuf,4,2);//回复信息
+				if((Msg->UartRecBuf[1]!=0x00)||(Msg->UartRecBuf[2]!=0x04))
+				{Msg->UartTx(Msg->UartRecBuf,4,2);}//回复信息		
 				uint16_t mb_buf = (Msg->UartRecBuf[1]<<8) | (Msg->UartRecBuf[2]);
 				rt_mb_send(Config_mailbox,(rt_ubase_t)mb_buf);
 			}
@@ -90,7 +91,9 @@ void USBDThread(void* parameter)
 		if(Msg->USB_COM->receive_length == SYS_CONFIG_PACK_LEN)//长度正确
 		{
 			if((Msg->USB_COM->data[3]==cal_crc8_table(Msg->USB_COM->data,3))&&Msg->USB_COM->data[0]==CMD_PACG_HEAD)//CRC通过 包头正确
-			{	Msg->USBTx(Msg->USB_COM->data,4,2);//回复信息
+			{
+				if((Msg->USB_COM->data[1]!=0x00)||(Msg->USB_COM->data[2]!=0x04))
+				{Msg->USBTx(Msg->USB_COM->data,4,2);}//回复信息
 				uint16_t mb_buf = (Msg->USB_COM->data[1]<<8) | (Msg->USB_COM->data[2]);
 				rt_mb_send(Config_mailbox,(rt_ubase_t)mb_buf);
 			}
