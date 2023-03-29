@@ -40,12 +40,12 @@ void IMUThread(void* parameter)
 		{
 			IMU->ReadAccelGyro();
 			rt_enter_critical();
-			IMU->AccelCorrected[0] = (IMU->Accel[0] + IMU->AccelCal[0]) * IMU->LSB_ACC_GYRO[0];
-			IMU->AccelCorrected[1] = (IMU->Accel[1] + IMU->AccelCal[1]) * IMU->LSB_ACC_GYRO[0];
-			IMU->AccelCorrected[2] = (IMU->Accel[2] + IMU->AccelCal[2]) * IMU->LSB_ACC_GYRO[0];
-			IMU->GyroCorrected[0] = (IMU->Gyro[0] + IMU->GyroCal[0]) * IMU->LSB_ACC_GYRO[1];
-			IMU->GyroCorrected[1] = (IMU->Gyro[1] + IMU->GyroCal[1]) * IMU->LSB_ACC_GYRO[1];
-			IMU->GyroCorrected[2] = (IMU->Gyro[2] + IMU->GyroCal[2]) * IMU->LSB_ACC_GYRO[1];			
+			IMU->AccelCorrected[0] = ((float)IMU->Accel[0] + IMU->AccelCal[0]) * IMU->LSB_ACC_GYRO[0];
+			IMU->AccelCorrected[1] = ((float)IMU->Accel[1] + IMU->AccelCal[1]) * IMU->LSB_ACC_GYRO[0];
+			IMU->AccelCorrected[2] = ((float)IMU->Accel[2] + IMU->AccelCal[2]) * IMU->LSB_ACC_GYRO[0];
+			IMU->GyroCorrected[0] = ((float)IMU->Gyro[0] + IMU->GyroCal[0]) * IMU->LSB_ACC_GYRO[1];
+			IMU->GyroCorrected[1] = ((float)IMU->Gyro[1] + IMU->GyroCal[1]) * IMU->LSB_ACC_GYRO[1];
+			IMU->GyroCorrected[2] = ((float)IMU->Gyro[2] + IMU->GyroCal[2]) * IMU->LSB_ACC_GYRO[1];			
 			rt_exit_critical();
 			IMU->ReadTem();
 		}

@@ -198,7 +198,7 @@ void DataOutputThread(void* parameter)
 	rt_thread_delay(1500);
 	const uint16_t DelayTime = 1 << qCtr->ODR;
 	rt_tick_t ticker;
-	uint8_t TxBuf[18]={0};
+	
 	for(;;)
 	{		
 		ticker = rt_tick_get();
@@ -206,9 +206,11 @@ void DataOutputThread(void* parameter)
 		/*允许对外输出*/
 		if(qCtr->EnableOutput==1)
 		{
+			
 			/*CAN输出*/
 			if(qCtr->OTSel==1)
 			{
+				uint8_t TxBuf[8]={0};
 				switch(qCtr->OutPutMode)
 				{
 					case 0x00://四元数输出
@@ -237,10 +239,11 @@ void DataOutputThread(void* parameter)
 					break;
 				}
 			}
-			
+			uint8_t TxBuf[18]={0};
 			/*USB输出*/
 			switch(qCtr->OutPutMode)
 			{
+				
 				case 0x00://四元数输出
 					TxBuf[0]=0x40;
 					Transform.Float_To_U8(IMU->Q,TxBuf+1,4);
@@ -278,20 +281,21 @@ void DataOutputThread(void* parameter)
 		/*6轴偏移量校正值输出*/
 		if(qCtr->OutPutMode==0x02)
 		{
+			uint8_t TxBuf[14]={0};
 			qCtr->OutPutMode = qCtr->OutPutModeLast;
 			TxBuf[0]=0x42;
-			TxBuf[1]=(int16_t)(IMU->GyroCal[0]*256.0f)>>8;
-			TxBuf[2]=(int16_t)(IMU->GyroCal[0]*256.0f)&0xFF;
-			TxBuf[3]=(int16_t)(IMU->GyroCal[1]*256.0f)>>8;
-			TxBuf[4]=(int16_t)(IMU->GyroCal[1]*256.0f)&0xFF;
-			TxBuf[5]=(int16_t)(IMU->GyroCal[2]*256.0f)>>8;
-			TxBuf[6]=(int16_t)(IMU->GyroCal[2]*256.0f)&0xFF;
-			TxBuf[7]=(int16_t)(IMU->AccelCal[0]*256.0f)>>8;
-			TxBuf[8]=(int16_t)(IMU->AccelCal[0]*256.0f)&0xFF;
-			TxBuf[9]=(int16_t)(IMU->AccelCal[1]*256.0f)>>8;
-			TxBuf[10]=(int16_t)(IMU->AccelCal[1]*256.0f)&0xFF;
-			TxBuf[11]=(int16_t)(IMU->AccelCal[2]*256.0f)>>8;
-			TxBuf[12]=(int16_t)(IMU->AccelCal[2]*256.0f)&0xFF;
+			TxBuf[1]=((int16_t)(IMU->GyroCal[0]*256.0f))>>8;
+			TxBuf[2]=((int16_t)(IMU->GyroCal[0]*256.0f))&0xFF;
+			TxBuf[3]=((int16_t)(IMU->GyroCal[1]*256.0f))>>8;
+			TxBuf[4]=((int16_t)(IMU->GyroCal[1]*256.0f))&0xFF;
+			TxBuf[5]=((int16_t)(IMU->GyroCal[2]*256.0f))>>8;
+			TxBuf[6]=((int16_t)(IMU->GyroCal[2]*256.0f))&0xFF;
+			TxBuf[7]=((int16_t)(IMU->AccelCal[0]*256.0f))>>8;
+			TxBuf[8]=((int16_t)(IMU->AccelCal[0]*256.0f))&0xFF;
+			TxBuf[9]=((int16_t)(IMU->AccelCal[1]*256.0f))>>8;
+			TxBuf[10]=((int16_t)(IMU->AccelCal[1]*256.0f))&0xFF;
+			TxBuf[11]=((int16_t)(IMU->AccelCal[2]*256.0f))>>8;
+			TxBuf[12]=((int16_t)(IMU->AccelCal[2]*256.0f))&0xFF;
 			TxBuf[13]=cal_crc8_table(TxBuf,13);
 			if(!qCtr->OTSel){
 			Msg->USBTx(TxBuf,14,RT_WAITING_NO);}
