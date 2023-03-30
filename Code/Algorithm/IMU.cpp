@@ -182,13 +182,41 @@ static void IMU_Init()
 	/*INT_SOURCE3*/
 	IMU->WriteReg(0x69,0x00);//Null
 	
-//	/*÷∏∂®Bank1 –≈∫≈¡¥…Ë÷√*/
-//	IMU->WriteReg(0x76,0x01);
+/*****øπªÏµ˛¬À≤®∆˜@536Hz*****/
+	
+	/*GYROøπªÏµ˛¬À≤®∆˜≈‰÷√*/
+	/*÷∏∂®Bank1*/
+	IMU->WriteReg(0x76,0x01);
+	/*GYROøπªÏµ˛¬À≤®∆˜≈‰÷√*/
+	IMU->WriteReg(0x0B,0xA0);//ø™∆ÙøπªÏµ˛∫Õœ›≤®¬À≤®∆˜
+	IMU->WriteReg(0x0C,0x0C);//GYRO_AAF_DELT 12 (default 13)
+	IMU->WriteReg(0x0D,0x90);//GYRO_AAF_DELTSQR 144 (default 170)
+	IMU->WriteReg(0x0E,0x80);//GYRO_AAF_BITSHIFT 8 (default 8)
+	
+	/*ACCELøπªÏµ˛¬À≤®∆˜≈‰÷√*/
+	/*÷∏∂®Bank2*/
+	IMU->WriteReg(0x76,0x02);
+	/*ACCELøπªÏµ˛¬À≤®∆˜≈‰÷√*/
+	IMU->WriteReg(0x03,0x18);//ø™∆Ù¬À≤®∆˜ ACCEL_AFF_DELT 12 (default 24)
+	IMU->WriteReg(0x04,0x90);//ACCEL_AFF_DELTSQR 144 (default 64)
+	IMU->WriteReg(0x05,0x80);//ACCEL_AAF_BITSHIFT 8 (default 6)
+
+/*****◊‘∂®“Â¬À≤®∆˜1∫≈@111Hz*****/
+
+	/*÷∏∂®Bank0*/
+	IMU->WriteReg(0x76,0x00);
+	/*¬À≤®∆˜À≥–Ú*/
+	IMU->WriteReg(0x51,0x12);//GYRO¬À≤®∆˜1st
+	IMU->WriteReg(0x53,0x05);//ACCEL¬À≤®∆˜1st
+	/*¬À≤®∆˜…Ë÷√*/
+	IMU->WriteReg(0x52,0x33);//111Hz 03
+
 	
 	exti_flag_clear(EXTI_3);
 	exti_flag_clear(EXTI_4);
 	exti_interrupt_enable(EXTI_3);
 	exti_interrupt_enable(EXTI_4);
+	
 	/*÷∏∂®Bank0*/
 	IMU->WriteReg(0x76,0x00);
 	/*µÁ‘¥π‹¿Ì*/

@@ -250,7 +250,7 @@ static void SPI_Init(void)
 static void UART_Init(void)
 {
 	usart_deinit(USART0);
-    usart_baudrate_set(USART0, 512000U);
+    usart_baudrate_set(USART0, 1000000U);
     usart_receive_config(USART0, USART_RECEIVE_ENABLE);
     usart_transmit_config(USART0, USART_TRANSMIT_ENABLE);
 	usart_dma_receive_config(USART0, USART_RECEIVE_DMA_ENABLE);

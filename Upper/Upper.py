@@ -58,18 +58,18 @@ class cCOM:
         time.sleep(0.01)
         if isRST == 'none':
             try:
-                self.COM_handel = serial.Serial(self.port_list[self.sel_i].name, 512000, timeout = 0.1)
+                self.COM_handel = serial.Serial(self.port_list[self.sel_i].name, 1000000, timeout = 0.1)
                 return True
             except:
                 return False
         elif isRST == 'rst':
             try:
-                self.COM_handel = serial.Serial(self.port_list[self.sel_i].name, 512000, timeout = 0.1)
+                self.COM_handel = serial.Serial(self.port_list[self.sel_i].name, 1000000, timeout = 0.1)
                 TxBuf = CMDPack(order='00',data='00')
                 self.write(TxBuf)
                 self.COM_handel.close()
                 time.sleep(1)
-                self.COM_handel = serial.Serial(self.port_list[self.sel_i].name, 512000, timeout = 0.1)
+                self.COM_handel = serial.Serial(self.port_list[self.sel_i].name, 1000000, timeout = 0.1)
                 #关闭串口对外信息发送
                 TxBuf = CMDPack(order='00',data='03')
                 COM.write(TxBuf)
