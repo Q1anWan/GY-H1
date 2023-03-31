@@ -71,7 +71,8 @@ void IMUAHRSThread(void* parameter)
 	/*µÈ´ıÎÂ¶È²¹³¥OK*/
 	while(!qCtr->TemperatureOK){rt_thread_delay(100);}
 	/*µÈ´ıÂË²¨Æ÷ÎÈ¶¨*/
-	rt_thread_delay(100);
+	rt_thread_delay(5000);
+
 	for(;;)
 	{
 		ticker = rt_tick_get();

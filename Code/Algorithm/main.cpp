@@ -533,10 +533,11 @@ static void Test2Thread(void* parameter)
 	{	
 		ticker = rt_tick_get();
 		QCS.Euler(IMU->Q,Angel);		
-//		Msg->Printf("GYRO=%d %d %d\n",IMU->Gyro[0],IMU->Gyro[1],IMU->Gyro[2]);rt_thread_delay(1);
-//		Msg->Printf("Accel %d %d %d\n",IMU->Accel[0],IMU->Accel[1],IMU->Accel[2]);
-		Msg->Printf("\n%f %f %f\n",Angel[0]*57.2957795f,Angel[1]*57.2957795f,Angel[2]*57.2957795f);
-		rt_thread_delay_until(&ticker,1);
+////		Msg->Printf("GYRO=%d %d %d\n",IMU->Gyro[0],IMU->Gyro[1],IMU->Gyro[2]);rt_thread_delay(1);
+//		Msg->Printf("Accel\nX=%f\nY=%f\nZ=%f\n",IMU->AccelCorrected[0],IMU->AccelCorrected[1],IMU->AccelCorrected[2]);rt_thread_delay(1);
+		Msg->Printf("\nRoll=%f\nPitch=%f\nYaw=%f\n",Angel[0]*57.2957795f,Angel[1]*57.2957795f,Angel[2]*57.2957795f);
+//		Msg->Printf("Tem=%f\n",IMU->Temperature);
+		rt_thread_delay_until(&ticker,4);
 	}
 }
 

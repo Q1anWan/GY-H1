@@ -58,18 +58,18 @@ class cCOM:
         time.sleep(0.01)
         if isRST == 'none':
             try:
-                self.COM_handel = serial.Serial(self.port_list[self.sel_i].name, 1000000, timeout = 0.1)
+                self.COM_handel = serial.Serial(self.port_list[self.sel_i].name, 864000, timeout = 0.1)
                 return True
             except:
                 return False
         elif isRST == 'rst':
             try:
-                self.COM_handel = serial.Serial(self.port_list[self.sel_i].name, 1000000, timeout = 0.1)
+                self.COM_handel = serial.Serial(self.port_list[self.sel_i].name, 864000, timeout = 0.1)
                 TxBuf = CMDPack(order='00',data='00')
                 self.write(TxBuf)
                 self.COM_handel.close()
                 time.sleep(1)
-                self.COM_handel = serial.Serial(self.port_list[self.sel_i].name, 1000000, timeout = 0.1)
+                self.COM_handel = serial.Serial(self.port_list[self.sel_i].name, 864000, timeout = 0.1)
                 #关闭串口对外信息发送
                 TxBuf = CMDPack(order='00',data='03')
                 COM.write(TxBuf)
@@ -502,7 +502,7 @@ def DataRec():
                 AccelZ = int.from_bytes(RecBuf[11:13],byteorder='big',signed=True)
 
                 #进入队列
-                tbuf += 0.003#加了矫正
+                tbuf += 0.002#加了矫正
                 IMU_Data.UI_t.append(tbuf)
                 IMU_Data.GyXq.append(GyroX)
                 IMU_Data.GyYq.append(GyroY)

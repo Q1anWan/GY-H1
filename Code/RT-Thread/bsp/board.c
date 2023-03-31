@@ -250,7 +250,7 @@ static void SPI_Init(void)
 static void UART_Init(void)
 {
 	usart_deinit(USART0);
-    usart_baudrate_set(USART0, 1000000U);
+    usart_baudrate_set(USART0, 864000U);
     usart_receive_config(USART0, USART_RECEIVE_ENABLE);
     usart_transmit_config(USART0, USART_TRANSMIT_ENABLE);
 	usart_dma_receive_config(USART0, USART_RECEIVE_DMA_ENABLE);
@@ -266,7 +266,7 @@ static void Timer_Init(void)
 	timer_deinit(TIMER2);
 
     /* TIMER2 configuration */
-    timer_initpara.prescaler         = 13;
+    timer_initpara.prescaler         = 0;
     timer_initpara.alignedmode       = TIMER_COUNTER_EDGE;
     timer_initpara.counterdirection  = TIMER_COUNTER_UP;
     timer_initpara.period            = 999;

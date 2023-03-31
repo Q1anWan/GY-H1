@@ -339,7 +339,7 @@
             <v6Rtti>0</v6Rtti>
             <VariousControls>
               <MiscControls></MiscControls>
-              <Define>USE_STDPERIPH_DRIVER,GD32F30X_HD,__FPU_USED,__FPU_PRESENT</Define>
+              <Define>USE_STDPERIPH_DRIVER,GD32F30X_HD,__FPU_USED,__FPU_PRESENT,qwDbug</Define>
               <Undefine></Undefine>
               <IncludePath>..\GD32F30x_standard_peripheral\Include;..\GD32F30x_standard_peripheral\GD32F30x\Include;..\Drivers;..\Algorithm;..\RT-Thread\bsp;..\RT-Thread\include;..\RT-Thread\include\libc;..\DSP\Include;..\DSP\Include\dsp;..\DSP\PrivateInclude;..\RT-Thread\components\finsh;..\RT-Thread\components\device;..\GD32F30x_usbd_library\class\device\cdc\Include;..\GD32F30x_usbd_library\device\Include;..\GD32F30x_usbd_library\usbd\Include</IncludePath>
             </VariousControls>
