@@ -578,25 +578,6 @@ def Accel_Update(i):
         IMU_Calib.UI_Accel_Line[2].set_data(IMU_Data.UI_t,IMU_Data.AcZq)  # update the data
     return IMU_Calib.UI_Accel_Line,
 
-def AccelCaliThread():
-
-    while True:
-        time.sleep(0.1)
-        if IMU_Calib.Cal_Thread_Enable == 0:
-            return False
-    return
-
-def AccelKeyHandel():
-
-    IMU_Calib.Cal_Thread_Enable = 1
-    ACalButton['state'] = 'disable'
-    GCalButton['state'] = 'disable'
-    ACalButton['bg'] = 'DarkGreen'
-    ACalButton['fg'] = 'Gold'
-    GCalButton['bg'] = 'white'
-    threading.Thread(target=AccelCaliThread).start()
-
-    return
 
 def GyroCaliThread():
 
@@ -678,6 +659,15 @@ def GyroCaliThread():
     IMU_Calib.Cal_Thread_Enable = 2
     return
 
+def AccelCaliThread():
+
+
+
+    
+    #切换标志位
+    IMU_Calib.Cal_Thread_Enable = 2
+    return
+
 def GyroWrite():
 
     time.sleep(0.1)
@@ -736,7 +726,9 @@ def GyroWrite():
 
         GUI.destroy()
 
-
+def AccelWrite():
+    
+    GUI.destroy()
 def GyroKeyHandel():
 
     #选定要执行的校准
@@ -759,6 +751,35 @@ def GyroKeyHandel():
         threading.Thread(target=GyroWrite).start()
         GCalButton['state'] = 'disable'
 
+def AccelKeyHandel():
+
+    IMU_Calib.Cal_Thread_Enable = 1
+    ACalButton['state'] = 'disable'
+    GCalButton['state'] = 'disable'
+    ACalButton['bg'] = 'DarkGreen'
+    ACalButton['fg'] = 'Gold'
+    GCalButton['bg'] = 'white'
+    threading.Thread(target=AccelCaliThread).start()
+    #选定要执行的校准
+    if IMU_Calib.Cal_Thread_Enable == 0:
+        IMU_Calib.Cal_Thread_Enable = 1
+        ACalButton['state'] = 'normal'
+        GCalButton['state'] = 'disable'
+        ACalButton['bg'] = 'DarkGreen'
+        ACalButton['fg'] = 'Gold'
+        GCalButton['bg'] = 'white'
+        ACalButton['text'] = 'Press to start calibrate Accel'
+        tkinter.messagebox.showinfo('Info','校准分为6小节,请按照提醒翻转GY-H1')
+    #开始执行校准
+    elif IMU_Calib.Cal_Thread_Enable == 1:
+        threading.Thread(target=AccelCaliThread).start()
+    #执行写入程序
+    elif IMU_Calib.Cal_Thread_Enable == 2:
+        #关闭数据获取线程
+        IMU_Data.Data_Thread_Enable = 0
+        threading.Thread(target=AccelWrite).start()
+        ACalButton['state'] = 'disable'
+    return
 #GY-H1 Calibrate
 def GYCalFunGUI():
     global GUI
