@@ -235,5 +235,5 @@ static void IMUCalibRead(void)
 	IMU->GyroCal[2] = ((float)((int16_t)(buf[1]>>16)))/1000.0f;
 	IMU->AccelCal[0] = ((float)((int16_t)(buf[1]&0xFFFF)))/1000.0f;
 	IMU->AccelCal[1] = ((float)((int16_t)(buf[2]>>16)))/1000.0f;
-	IMU->AccelCal[2] = ((float)((int16_t)(buf[2]&0xFFFF)))/1000.0f;
+	IMU->AccelCal[2] = ((float)((int16_t)(buf[2]&0xFFFF)))/800.0f;
 }
