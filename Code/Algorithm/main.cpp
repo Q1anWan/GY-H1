@@ -259,7 +259,7 @@ int main(void)
 	rt_thread_startup(LEDCal_thread);					
 	rt_thread_startup(DataOutput_thread);
 	rt_thread_startup(Key_thread);
-	//rt_thread_startup(KeyAction_thread);
+	rt_thread_startup(KeyAction_thread);
 	#ifdef qwDbug
 	Test1_thread =                          				/* 线程控制块指针 */
 	rt_thread_create( 					"Test1",            /* 线程名字 */
