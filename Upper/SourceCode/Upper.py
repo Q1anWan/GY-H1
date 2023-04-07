@@ -713,7 +713,7 @@ def AccelCaliThread(axis,direction):
         b,a = signal.butter(1,0.01,'lowpass')
         bufX_p = signal.filtfilt(b,a,bufX_p)
          #平均一下,四舍五入,截去前2%的数据
-        value = -round(1000*np.average(bufX_p[int(len(bufX_p)*0.02):-1]))
+        value = -round(0.5*1000*np.average(bufX_p[int(len(bufX_p)*0.02):-1]))
         print(axis+direction+' = '+ str(value/1000) +'\n')
         IMU_Calib.AcXc += value
         #标记某轴已校准
@@ -737,7 +737,7 @@ def AccelCaliThread(axis,direction):
         b,a = signal.butter(1,0.01,'lowpass')
         bufY_p = signal.filtfilt(b,a,bufY_p)
         #平均一下,四舍五入,截去前2%的数据
-        value = -round(1000*np.average(bufY_p[int(len(bufY_p)*0.02):-1]))
+        value = -round(0.5*1000*np.average(bufY_p[int(len(bufY_p)*0.02):-1]))
         print(axis+direction+' = '+str(value/1000)+'\n')
         IMU_Calib.AcYc += value
         #标记某轴已校准
@@ -761,7 +761,7 @@ def AccelCaliThread(axis,direction):
         b,a = signal.butter(1,0.01,'lowpass')
         bufZ_p = signal.filtfilt(b,a,bufZ_p)
         #平均一下,四舍五入,截去前2%的数据
-        value = -round(800*np.average(bufZ_p[int(len(bufZ_p)*0.02):-1]))
+        value = -round(0.5*800*np.average(bufZ_p[int(len(bufZ_p)*0.02):-1]))
         print(axis+direction+' = '+str(value/800)+'\n')
         IMU_Calib.AcZc += value
         #标记某轴已校准
@@ -1110,9 +1110,9 @@ def GYCalFunGUI():
 ###
 
 print("-"*50)
-print("\n\n\t\tGY-H1 Upper V1.0\n")
+print("\n\n\t\tGY-H1 Upper V1.1\n")
 print("\t\tDesigned by qianwan\n")
-print("\t\t2023-04-01\n\n")
+print("\t\t2023-04-07\n\n")
 print("-"*50)
 
 
