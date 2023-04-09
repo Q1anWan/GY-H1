@@ -16,6 +16,7 @@
   - [IMU信号链路](#imu信号链路)
 
 # GY-H1 
+![Render](./Document/Render.png "Render")
 ## 基本配置
 - 主传感器使用**ICM42688-P**，配有避震孤岛结构设计及温度补偿电路。  
 - 主控制器使用**GD32F303CET6**，超频至**288MHz**使用。
