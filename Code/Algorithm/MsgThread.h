@@ -31,6 +31,7 @@ void USART0_IRQHandler(void);
 void rt_hw_console_output(const char *str);
 void USBD_LP_CAN0_RX0_IRQHandler(void);
 void USBD_WKUP_IRQHandler(void);
+void CAN0_RX1_IRQHandler(void);
 }
 
 #endif

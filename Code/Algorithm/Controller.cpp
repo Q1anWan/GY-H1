@@ -299,8 +299,8 @@ void DataOutputThread(void* parameter)
 			TxBuf[8]=(int16_t)(IMU->AccelCal[0]*1000.0f)&0xFF;
 			TxBuf[9]=(int16_t)(IMU->AccelCal[1]*1000.0f)>>8;
 			TxBuf[10]=(int16_t)(IMU->AccelCal[1]*1000.0f)&0xFF;
-			TxBuf[11]=(int16_t)(IMU->AccelCal[2]*1000.0f)>>8;
-			TxBuf[12]=(int16_t)(IMU->AccelCal[2]*1000.0f)&0xFF;
+			TxBuf[11]=(int16_t)(IMU->AccelCal[2]*800.0f)>>8;
+			TxBuf[12]=(int16_t)(IMU->AccelCal[2]*800.0f)&0xFF;
 			TxBuf[13]=cal_crc8_table(TxBuf,13);
 			if(!qCtr->OTSel){
 			Msg->USBTx(TxBuf,14,RT_WAITING_NO);}

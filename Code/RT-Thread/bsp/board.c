@@ -368,6 +368,10 @@ static void USB_Init(void)
 }
 static void CAN_Init(void)
 {
+	uint32_t buf;
+	fmc_read_u32(FLASH_USERDATA_ADDRESS,&buf,1);
+	uint16_t CANRecID 	= (uint16_t)(0x302+((buf&(uint32_t)0x0000FF00U)>>4));
+	
 	can_parameter_struct            can_parameter;
     can_filter_parameter_struct     can_filter;
 	
@@ -404,14 +408,15 @@ static void CAN_Init(void)
     can_filter.filter_number = 0;
 
     /* initialize filter */    
-    can_filter.filter_mode = CAN_FILTERMODE_MASK;
+    can_filter.filter_mode = CAN_FILTERMODE_LIST;
     can_filter.filter_bits = CAN_FILTERBITS_32BIT;
-	/*They shall not pass*/
-	/*全部滤除*/
-	can_filter.filter_list_high = 0xFFFF;
-    can_filter.filter_list_low = 0xFFFF;
+	
+	/*仅允许指定标识符通过*/
+	can_filter.filter_list_high = CANRecID<<5;
+    can_filter.filter_list_low = 0x0000;
     can_filter.filter_mask_high = 0x0000;
     can_filter.filter_mask_low = 0x0000;  
+	
     can_filter.filter_fifo_number = CAN_FIFO1;
     can_filter.filter_enable = ENABLE;
     can_filter_init(&can_filter);

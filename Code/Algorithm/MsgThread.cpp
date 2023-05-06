@@ -1,11 +1,12 @@
 #include "MsgThread.h"
 #include "Controller.h"
+#include "IMU.h"
 #include "CRC8.h"
 #include <stdio.h>
 
+
 /*程序串口发送控制*/
 cMSG  *Msg;
-
 usb_dev *my_usb_dev = RT_NULL;
 /*串口进程控制指针*/
 rt_thread_t UART_thread = RT_NULL;
@@ -118,7 +119,7 @@ void USART0_IRQHandler(void)
 {
 	if(Msg->Recieve_IRQ())
 	{
-		rt_sem_release(UART0_RxSem);
+		rt_sem_release(UART0_RxSem);		
 	}
 }
 void CANThread(void* parameter)
@@ -127,11 +128,46 @@ void CANThread(void* parameter)
 	for(;;)
 	{
 		rt_sem_take(CAN_Sem,RT_WAITING_FOREVER);
+		uint16_t mb_buf;
+		uint8_t TxBuf[8]={0};
+		switch(Msg->CAN_RecMsg->rx_data[0])
+		{
+			/*重启GY-H1*/
+			case 0x01:
+				mb_buf = 0x0000;
+				rt_mb_send(Config_mailbox,(rt_ubase_t)mb_buf);
+			break;
+			/*重置旋转四元数*/
+			case 0x02:
+				mb_buf = 0x0001;
+				rt_mb_send(Config_mailbox,(rt_ubase_t)mb_buf);
+			break;
+			/*输出6轴校正数据*/
+			case 0x03:
+				TxBuf[0]=(int16_t)(IMU->GyroCal[0]*1000.0f)>>8;
+				TxBuf[1]=(int16_t)(IMU->GyroCal[0]*1000.0f)&0xFF;
+				TxBuf[2]=(int16_t)(IMU->GyroCal[1]*1000.0f)>>8;
+				TxBuf[3]=(int16_t)(IMU->GyroCal[1]*1000.0f)&0xFF;
+				TxBuf[4]=(int16_t)(IMU->GyroCal[2]*1000.0f)>>8;
+				TxBuf[5]=(int16_t)(IMU->GyroCal[2]*1000.0f)&0xFF;		
+				TxBuf[6]=0x04;
+				Msg->CANTx(qCtr->CAN_ID,TxBuf,8);
+				TxBuf[0]=(int16_t)(IMU->AccelCal[0]*1000.0f)>>8;
+				TxBuf[1]=(int16_t)(IMU->AccelCal[0]*1000.0f)&0xFF;
+				TxBuf[2]=(int16_t)(IMU->AccelCal[1]*1000.0f)>>8;
+				TxBuf[3]=(int16_t)(IMU->AccelCal[1]*1000.0f)&0xFF;
+				TxBuf[4]=(int16_t)(IMU->AccelCal[2]*800.0f)>>8;
+				TxBuf[5]=(int16_t)(IMU->AccelCal[2]*800.0f)&0xFF;
+				TxBuf[6]=0x04;
+				Msg->CANTx(qCtr->CAN_ID,TxBuf,8);
+			break;
+		}
 	}
 }
 
 void CAN0_RX1_IRQHandler(void)
 {
+	can_interrupt_flag_clear(CAN0,CAN_INT_FLAG_RFL1);
 	can_message_receive(CAN0,CAN_FIFO1,Msg->CAN_RecMsg);
 	rt_sem_release(CAN_Sem);
 }
