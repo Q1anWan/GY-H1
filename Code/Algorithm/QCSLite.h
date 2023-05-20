@@ -1,7 +1,11 @@
 /*********************************************************************************
   *FileName:		QCSLite.h
   *Author:  		qianwan
-  *Detail: 			四元数驱动 右前上 弧度制
+  *Detail: 			四元数驱动 右前上-XYZ-RollPitchYaw 弧度制
+
+  *Version:  		1.4.1
+  *Date:  			2023/05/20
+  *Describe:		使用快速反正切函数
   
   *Version:  		1.4
   *Date:  			2023/03/27

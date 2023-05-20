@@ -1,7 +1,11 @@
 /*********************************************************************************
   *FileName:		QCSLite.cpp
   *Author:  		qianwan
-  *Detail: 			四元数驱动 右前上-XYZ-RollPitch-Yaw 弧度制
+  *Detail: 			四元数驱动 右前上-XYZ-RollPitchYaw 弧度制
+
+  *Version:  		1.4.1
+  *Date:  			2023/05/20
+  *Describe:		修复四元数旋转函数, 使用快速反正切函数
   
   *Version:  		1.4
   *Date:  			2023/03/27
@@ -31,12 +35,9 @@ void cQCS::Rotate(float *inputQ, float *outputQ, float *axis, float radian)
 {
 	float sinTheat = arm_sin_f32(radian*0.5f);
 	float p[4] = {arm_cos_f32(radian*0.5f),sinTheat*axis[0],sinTheat*axis[1],sinTheat*axis[2]};	
-	float pn[4]={p[0],-p[1],-p[2],-p[3]};
 	float tem[4];
 	
-	arm_quaternion_product_single_f32(p,inputQ,tem);
-	arm_quaternion_product_single_f32(tem,pn,outputQ);
-	
+	arm_quaternion_product_single_f32(p,inputQ,outputQ);
 }
 
 
@@ -50,10 +51,11 @@ void cQCS::Rotate(float *inputQ, float *outputQ, float *axis, float radian)
 float cQCS::Roll(float *inputQ)
 {
 	//atan2(2(q0q1_q2q3),1-2(q1q1+q2q2))
-	return atan2f( 
-					2.0f*(inputQ[0]*inputQ[1] + inputQ[2]*inputQ[3]),
-					(1.0f - 2.0f*(inputQ[1]*inputQ[1] + inputQ[2]*inputQ[2])) 
-				 );
+	float result;
+	arm_atan2_f32(	2.0f*(inputQ[0]*inputQ[1] + inputQ[2]*inputQ[3]),
+					1.0f - 2.0f*(inputQ[1]*inputQ[1] + inputQ[2]*inputQ[2]),
+					&result);
+	return result;
 }
 
 /***********************************************************************
@@ -79,10 +81,11 @@ float cQCS::Pitch(float *inputQ)
 float cQCS::Yaw(float *inputQ)
 {
 	//atan2(2(q0q3+q1q2),1-2(q2q2+q3q3))
-	return atan2f( 
-					2.0f*(inputQ[0]*inputQ[3] + inputQ[1]*inputQ[2]),
-					(1.0f - 2.0f*(inputQ[2]*inputQ[2] + inputQ[3]*inputQ[3])) 
-				 );
+	float result;
+	arm_atan2_f32(	2.0f*(inputQ[0]*inputQ[3] + inputQ[1]*inputQ[2]),
+					1.0f - 2.0f*(inputQ[2]*inputQ[2] + inputQ[3]*inputQ[3]),
+					&result);
+	return result;
 }
 
 /***********************************************************************
