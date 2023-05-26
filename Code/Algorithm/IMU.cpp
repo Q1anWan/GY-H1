@@ -156,7 +156,7 @@ static void IMU_Init()
 	/*指定Bank0*/
 	IMU->WriteReg(0x76,0x00);
 	/*中断输出设置*/
-	IMU->WriteReg(0x12,0x36);//INT1 INT2 脉冲模式，低有效
+	IMU->WriteReg(0x14,0x12);//INT1 INT2 脉冲模式，低有效
 	/*Gyro设置*/
 	IMU->WriteReg(0x4F,0x06);//2000dps 1KHz
 	/*Accel设置*/
