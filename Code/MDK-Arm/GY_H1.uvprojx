@@ -81,9 +81,9 @@
             <nStopB2X>0</nStopB2X>
           </BeforeMake>
           <AfterMake>
-            <RunUserProg1>0</RunUserProg1>
+            <RunUserProg1>1</RunUserProg1>
             <RunUserProg2>0</RunUserProg2>
-            <UserProg1Name></UserProg1Name>
+            <UserProg1Name>.\Keil5_disp_size_bar_v0.4.exe</UserProg1Name>
             <UserProg2Name></UserProg2Name>
             <UserProg1Dos16Mode>0</UserProg1Dos16Mode>
             <UserProg2Dos16Mode>0</UserProg2Dos16Mode>
@@ -576,9 +576,14 @@
               <FilePath>..\Algorithm\main.cpp</FilePath>
             </File>
             <File>
-              <FileName>MsgThread.cpp</FileName>
-              <FileType>8</FileType>
-              <FilePath>..\Algorithm\MsgThread.cpp</FilePath>
+              <FileName>kalman_filter.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Algorithm\kalman_filter.c</FilePath>
+            </File>
+            <File>
+              <FileName>QuaternionEKF.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Algorithm\QuaternionEKF.c</FilePath>
             </File>
             <File>
               <FileName>IMU.cpp</FileName>
@@ -586,74 +591,14 @@
               <FilePath>..\Algorithm\IMU.cpp</FilePath>
             </File>
             <File>
+              <FileName>MsgThread.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>..\Algorithm\MsgThread.cpp</FilePath>
+            </File>
+            <File>
               <FileName>Controller.cpp</FileName>
               <FileType>8</FileType>
               <FilePath>..\Algorithm\Controller.cpp</FilePath>
-            </File>
-            <File>
-              <FileName>MahonyAHRS.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\Algorithm\MahonyAHRS.c</FilePath>
-            </File>
-            <File>
-              <FileName>QCSLite.cpp</FileName>
-              <FileType>8</FileType>
-              <FilePath>..\Algorithm\QCSLite.cpp</FilePath>
-            </File>
-          </Files>
-        </Group>
-        <Group>
-          <GroupName>DSP</GroupName>
-          <Files>
-            <File>
-              <FileName>BasicMathFunctions.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\DSP\Source\BasicMathFunctions\BasicMathFunctions.c</FilePath>
-            </File>
-            <File>
-              <FileName>CommonTables.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\DSP\Source\CommonTables\CommonTables.c</FilePath>
-            </File>
-            <File>
-              <FileName>ControllerFunctions.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\DSP\Source\ControllerFunctions\ControllerFunctions.c</FilePath>
-            </File>
-            <File>
-              <FileName>FastMathFunctions.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\DSP\Source\FastMathFunctions\FastMathFunctions.c</FilePath>
-            </File>
-            <File>
-              <FileName>FilteringFunctions.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\DSP\Source\FilteringFunctions\FilteringFunctions.c</FilePath>
-            </File>
-            <File>
-              <FileName>InterpolationFunctions.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\DSP\Source\InterpolationFunctions\InterpolationFunctions.c</FilePath>
-            </File>
-            <File>
-              <FileName>MatrixFunctions.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\DSP\Source\MatrixFunctions\MatrixFunctions.c</FilePath>
-            </File>
-            <File>
-              <FileName>QuaternionMathFunctions.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\DSP\Source\QuaternionMathFunctions\QuaternionMathFunctions.c</FilePath>
-            </File>
-            <File>
-              <FileName>StatisticsFunctions.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\DSP\Source\StatisticsFunctions\StatisticsFunctions.c</FilePath>
-            </File>
-            <File>
-              <FileName>SupportFunctions.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\DSP\Source\SupportFunctions\SupportFunctions.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -804,6 +749,36 @@
               <FileName>cmd.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\RT-Thread\components\finsh\cmd.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>DSP</GroupName>
+          <Files>
+            <File>
+              <FileName>BasicMathFunctions.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\DSP\Source\BasicMathFunctions\BasicMathFunctions.c</FilePath>
+            </File>
+            <File>
+              <FileName>CommonTables.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\DSP\Source\CommonTables\CommonTables.c</FilePath>
+            </File>
+            <File>
+              <FileName>FastMathFunctions.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\DSP\Source\FastMathFunctions\FastMathFunctions.c</FilePath>
+            </File>
+            <File>
+              <FileName>MatrixFunctions.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\DSP\Source\MatrixFunctions\MatrixFunctions.c</FilePath>
+            </File>
+            <File>
+              <FileName>QuaternionMathFunctions.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\DSP\Source\QuaternionMathFunctions\QuaternionMathFunctions.c</FilePath>
             </File>
           </Files>
         </Group>

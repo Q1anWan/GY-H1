@@ -8,15 +8,18 @@
 
 #include "QCSLite.h"
 
-uint16_t TxNum = 0;
-uint16_t TxDir = 0;
-uint16_t TxBuf= 0;
-uint16_t TxTask = 0;
-uint16_t InStackNum = 0;
-uint8_t Test0 = 0;
-uint8_t Test1 = 0;
-uint8_t Test2 = 0;
-uint8_t Test3 = 0;
+/*	 
+	 添加宏定义 qwDbug 激活调试进程与参数
+*/
+//uint16_t TxNum = 0;
+//uint16_t TxDir = 0;
+//uint16_t TxBuf= 0;
+//uint16_t TxTask = 0;
+//uint16_t InStackNum = 0;
+//uint8_t Test0 = 0;
+//uint8_t Test1 = 0;
+//uint8_t Test2 = 0;
+//uint8_t Test3 = 0;
 
 
 static void LEDCalculateThread(void* parameter);
@@ -147,7 +150,7 @@ int main(void)
 	rt_thread_create( 					"IMUAHRS",        	/* 线程名字 */
 										IMUAHRSThread,   	/* 线程入口函数 */
 										RT_NULL,            /* 线程入口函数参数 */
-										768,                /* 线程栈大小 */
+										4096,               /* 线程栈大小 */
 										1,                  /* 线程的优先级 */
 										5);                 /* 线程时间片 */
 										
@@ -533,7 +536,7 @@ static void Test2Thread(void* parameter)
 	{	
 		ticker = rt_tick_get();
 		QCS.Euler(IMU->Q,Angel);		
-////		Msg->Printf("GYRO=%d %d %d\n",IMU->Gyro[0],IMU->Gyro[1],IMU->Gyro[2]);rt_thread_delay(1);
+////	Msg->Printf("GYRO=%d %d %d\n",IMU->Gyro[0],IMU->Gyro[1],IMU->Gyro[2]);rt_thread_delay(1);
 //		Msg->Printf("Accel\nX=%f\nY=%f\nZ=%f\n",IMU->AccelCorrected[0],IMU->AccelCorrected[1],IMU->AccelCorrected[2]);rt_thread_delay(1);
 		Msg->Printf("\nRoll=%f\nPitch=%f\nYaw=%f\n",Angel[0]*57.2957795f,Angel[1]*57.2957795f,Angel[2]*57.2957795f);
 //		Msg->Printf("Tem=%f\n",IMU->Temperature);

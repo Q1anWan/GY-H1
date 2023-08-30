@@ -1,10 +1,11 @@
 #include "IMU.h"
 #include "MsgThread.h"
 #include "Controller.h"
-#include "MahonyAHRS.h"
+#include "QuaternionEKF.h"
 #include "Flash_GD.h"
 
-cIMU *IMU;
+cIMU tIMU;
+cIMU *IMU = &tIMU;
 /*IMU进程控制指针*/
 rt_thread_t IMU_thread = RT_NULL;
 rt_thread_t IMUSlaver_thread = RT_NULL;
@@ -17,23 +18,26 @@ static void IMU_PreInit(void);
 static void IMU_Init(void);
 static void IMUCalibRead(void);
 
+extern void IMU_QuaternionEKF_Init(float process_noise1, float process_noise2, float measure_noise, float lambda, float dt);
+extern void IMU_QuaternionEKF_Update(float *q, float gx, float gy, float gz, float ax, float ay, float az);
+extern void IMU_QuaternionEKF_Reset(void);
+
 void IMUThread(void* parameter)
 {
-	IMU = new cIMU();
-	rt_enter_critical();
+	rt_tick_t ticke=0;
+	
 	IMUCalibRead();
-	rt_exit_critical();
-	uint8_t Test;
 	IMU->SPI_Init(SPI0,GPIOB,GPIO_PIN_0);
 	IMU_PreInit();
 	
-	while(IMU->Temperature<40.5f)
+	ticke = rt_tick_get();
+	/*最多等5s*/	
+	while( (IMU->Temperature<40.5f)&&((rt_tick_get()-ticke)>5000) )
 	{
 		//50Hz温度读取
 		IMU->ReadTem();
 		rt_thread_delay(20);
 	}
-	
 	IMU_Init();//预热完成后再正初始化
 	qCtr->TemperatureOK=1;
 	
@@ -67,18 +71,21 @@ void IMU2Thread(void* parameter)
 
 void IMUAHRSThread(void* parameter)
 {
+	rt_thread_delay(1000);
 	rt_tick_t ticker;
+	/*Ready to start EKF*/
+	rt_enter_critical();
+	IMU_QuaternionEKF_Init(10, 0.001, 10000000, 1, 0.001f);
+	rt_exit_critical();
 	/*等待温度补偿OK*/
 	while(!qCtr->TemperatureOK){rt_thread_delay(100);}
-	/*等待滤波器稳定*/
-	rt_thread_delay(5000);
 
 	for(;;)
 	{
 		ticker = rt_tick_get();
 		rt_enter_critical();
-		/*互补滤波迭代四元数*/
-		MahonyAHRSupdateINS(IMU->Q,IMU->GyroCorrected[0],IMU->GyroCorrected[1],IMU->GyroCorrected[2],IMU->AccelCorrected[0],IMU->AccelCorrected[1],IMU->AccelCorrected[2]);
+		/*EKF迭代四元数*/
+		IMU_QuaternionEKF_Update(IMU->Q,IMU->GyroCorrected[0],IMU->GyroCorrected[1],IMU->GyroCorrected[2],IMU->AccelCorrected[0],IMU->AccelCorrected[1],IMU->AccelCorrected[2]);
 		rt_exit_critical();
 		rt_thread_delay_until(&ticker,1);
 	}
